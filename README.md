@@ -66,7 +66,7 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 
 - **🔍 Security Health Audit:** Scans your system's FileVault encryption, SIP, Gatekeeper, Application Firewall, and remote sharing services with an instant risk score.
 - **🔒 Automated Baseline Hardening:** One-click enables stealth mode, drops unsolicited ICMP pings, closes unauthenticated ports, and restricts remote automation.
-- **💻 Zero-Trace Vault Console:** Spawns an ephemeral, RAM-backed terminal session (`/Volumes/IronVault`) with shell history completely disabled (`HISTFILE=/dev/null`). All commands and scratch files disappear from memory upon exit.
+- **💻 Zero-Trace Vault Console:** Spawns an ephemeral, RAM-backed terminal session (`/Volumes/IronVault`) featuring a cyberpunk telemetry HUD, two-line tactical prompt, and shell history completely disabled (`HISTFILE=/dev/null`). Includes built-in `shred`, `keccak`, `wei2eth`, and offline wallet tooling. All commands and scratch files vanish from memory upon exit.
 - **🪙 Built-in EVM & Starknet CLI Wallets:** Instant, zero-trace wallet generation and transaction signing using Foundry's `cast` (EVM) and `starkli` (Starknet) directly inside the ephemeral RAM Disk.
 - **🪤 Active Anti-AMOS Honeypot Trap:** Deploys decoy canary keystores in standard infostealer targets (`~/.ethereum/keystore`, `~/.config/solana`, Documents) and runs a zero-CPU `kqueue` sentry daemon that immediately fires audio & desktop alarms when untrusted processes tamper with them.
 - **📋 Clipboard Guard:** Detects silent address swapping trojans (EVM, Solana, Bitcoin) and automatically purges copied private keys and seed phrases after a 30-second TTL.
@@ -86,8 +86,9 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
   # 1. Spawn a zero-trace memory workspace
   ironmac console
 
-  # 2. Inside the secure console, view built-in commands & guide anytime:
+  # 2. Inside the secure console, view built-in commands or live telemetry HUD:
   help   # (or 'iron-help')
+  hud    # (live RAM disk, honeypot & air-gap status)
 
   # 3. Generate an ephemeral EVM burner wallet directly in RAM
   cast wallet new

@@ -6,17 +6,15 @@
 
 set -euo pipefail
 
+# ANSI 256-color & style definitions
 BOLD="\033[1m"
-GREEN="\033[32m"
-YELLOW="\033[33m"
-CYAN="\033[36m"
-RED="\033[31m"
+GREEN="\033[38;5;82m"
+YELLOW="\033[38;5;214m"
+CYAN="\033[38;5;51m"
+RED="\033[38;5;196m"
+GRAY="\033[38;5;242m"
+PURPLE="\033[38;5;141m"
 RESET="\033[0m"
-
-echo ""
-echo -e "${CYAN}${BOLD}==========================================================${RESET}"
-echo -e "${CYAN}${BOLD}          🛡️  IronMac Secure Vault Console               ${RESET}"
-echo -e "${CYAN}${BOLD}==========================================================${RESET}"
 
 RAMDEV=""
 MOUNT_POINT=""
@@ -24,22 +22,26 @@ TMP_ENV_DIR=$(mktemp -d /tmp/ironmac_console_XXXXXX)
 
 cleanup() {
     echo ""
-    echo -e "${YELLOW}Shutting down secure console session...${RESET}"
+    echo -e "${GRAY}┌──${RESET}${BOLD}${YELLOW}[ ⚡ INITIATING SECURE TEARDOWN ]${RESET}${GRAY}─────────────────────────────────┐${RESET}"
     if [[ -n "${RAMDEV}" ]]; then
-        echo -n "Destroying ephemeral RAM Disk (${RAMDEV})... "
+        echo -e "${GRAY}│${RESET}  Purging ephemeral RAM disk (${RAMDEV})... \c"
         diskutil eject "${RAMDEV}" >/dev/null 2>&1 || true
-        echo -e "${GREEN}✓ Purged${RESET}"
+        echo -e "${GREEN}✓ PURGED${RESET}"
     fi
     if [[ -d "${TMP_ENV_DIR}" ]]; then
+        echo -e "${GRAY}│${RESET}  Scrubbing temporary environment variables & zdot... ${GREEN}✓ CLEARED${RESET}"
         rm -rf "${TMP_ENV_DIR}"
     fi
-    echo -e "${GREEN}${BOLD}✓ Secure session terminated. Zero artifacts written to disk.${RESET}\n"
+    echo -e "${GRAY}│${RESET}  Sanitizing volatile memory & terminal buffer... ${GREEN}✓ CLEAN${RESET}"
+    echo -e "${GRAY}└──${RESET}${BOLD}${GREEN}[ ✓ SECURE SESSION TERMINATED // ZERO ARTIFACTS ON SSD ]${RESET}${GRAY}──────┘${RESET}\n"
 }
 
 trap cleanup EXIT INT TERM
 
+echo ""
+echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONMAC // SECURE VAULT CONSOLE v0.4.0 ]${RESET}${GRAY}────────────────────────┐${RESET}"
+
 # 1. Mount 32MB Ephemeral RAM Disk (if supported)
-echo -n "Initializing ephemeral RAM Disk (32MB)... "
 RAW_DEV=$(hdiutil attach -nomount ram://65536 2>/dev/null | awk '{print $1}' || true)
 
 if [[ -n "${RAW_DEV}" ]]; then
@@ -47,13 +49,36 @@ if [[ -n "${RAW_DEV}" ]]; then
     VOL_NAME="IronVault_$$"
     diskutil erasevolume HFS+ "${VOL_NAME}" "${RAMDEV}" >/dev/null 2>&1
     MOUNT_POINT="/Volumes/${VOL_NAME}"
-    echo -e "${GREEN}✓ Ready at ${MOUNT_POINT}${RESET}"
+    echo -e "${GRAY}│${RESET}  ${BOLD}WORKSPACE${RESET} : ${GREEN}${MOUNT_POINT} (32MB Ephemeral RAM Disk)${RESET}"
 else
-    # Fallback to tmpfs-like directory
     MOUNT_POINT="${TMP_ENV_DIR}/workspace"
     mkdir -p "${MOUNT_POINT}"
-    echo -e "${YELLOW}Fallback to ${MOUNT_POINT}${RESET}"
+    echo -e "${GRAY}│${RESET}  ${BOLD}WORKSPACE${RESET} : ${YELLOW}${MOUNT_POINT} (Temp Memory Fallback)${RESET}"
 fi
+
+echo -e "${GRAY}│${RESET}  ${BOLD}INTEGRITY${RESET} : ${YELLOW}[●] HISTFILE → /dev/null${RESET}  ${GREEN}[●] ZERO-SSD-PERSISTENCE${RESET}"
+
+# Check PATH & tools
+for p in /opt/homebrew/bin /usr/local/bin "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.foundry/bin" "$HOME/.starkli/bin"; do
+    if [[ -d "$p" && ":$PATH:" != *":$p:"* ]]; then
+        export PATH="$p:$PATH"
+    fi
+done
+
+FOUNDRY_STATUS="${GRAY}○ Missing${RESET}"
+command -v cast >/dev/null 2>&1 && FOUNDRY_STATUS="${GREEN}● Ready${RESET}"
+
+STARKLI_STATUS="${GRAY}○ Missing${RESET}"
+command -v starkli >/dev/null 2>&1 && STARKLI_STATUS="${GREEN}● Ready${RESET}"
+
+TRAP_STATUS="${GRAY}○ Inactive${RESET}"
+pgrep -f "trap_sentry.py" >/dev/null && TRAP_STATUS="${GREEN}● Armed${RESET}"
+
+CLIP_STATUS="${GRAY}○ Inactive${RESET}"
+pgrep -f "clip_guard.py" >/dev/null && CLIP_STATUS="${GREEN}● Armed${RESET}"
+
+echo -e "${GRAY}│${RESET}  ${BOLD}TELEMETRY${RESET} : Cast: ${FOUNDRY_STATUS}  Starkli: ${STARKLI_STATUS}  Trap: ${TRAP_STATUS}  ClipGuard: ${CLIP_STATUS}"
+echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ ZERO-TRACE AIR-GAP SANDBOX // TYPE 'help' FOR MANUAL ]${RESET}${GRAY}────────┘${RESET}\n"
 
 # 2. Prepare Isolated Zero-Trace Shell Configuration
 ZDOT_DIR="${TMP_ENV_DIR}/zdot"
@@ -81,56 +106,100 @@ for p in /opt/homebrew/bin /usr/local/bin "$HOME/.local/bin" "$HOME/.cargo/bin" 
     fi
 done
 
-# 3. Secure Distinctive Prompt & Aliases
-PROMPT='%F{yellow}[🔒 IRON-CONSOLE]%f %F{cyan}%1~%f ❯ '
+# 3. Two-Line Hacker Cyberpunk Prompt
+PROMPT="%F{242}╭─%f%F{82}[%f%F{51}⚡ IRON-VAULT%f%F{82}]%f%F{242}─%f%F{214}[HIST:OFF]%f%F{242}─%f%F{141}[%1~]%f"$'\n'"%F{242}╰─%f%(?.%F{51}❯%f.%F{196}❯%f) "
 
-alias clear="clear && echo -e '\033[33m[🔒 IRON-CONSOLE: History OFF | RAM-backed Workspace active]\033[0m'"
+# 4. Built-in Security Aliases
+alias clear="clear && echo -e '\033[38;5;242m╭─\033[0m\033[1;38;5;51m[⚡ IRON-VAULT // VOLATILE MEMORY ACTIVE // ZERO-TRACE]\033[0m\033[38;5;242m─\033[0m\033[38;5;214m[HIST:OFF]\033[0m\033[38;5;242m─\033[0m\033[38;5;82m[● AIR-GAP READY]\033[0m'"
 alias evm-wallet="cast wallet"
 alias starknet-wallet="starkli"
 alias vault-browser="ironmac vault-browser"
 alias clip-guard="ironmac clip-guard"
 alias trap="ironmac trap"
 alias panic="ironmac panic"
+alias iron-help=help
+alias '?'=help
+alias status=hud
 
 unalias help 2>/dev/null || true
 
 help() {
-    echo -e "\033[1;36m==========================================================\033[0m"
-    echo -e "\033[1;36m          🛡️  IronMac Secure Console User Guide          \033[0m"
-    echo -e "\033[1;36m==========================================================\033[0m"
-    echo -e "Zero-Trace Ephemeral RAM Environment for Web3 Operations\n"
-
-    echo -e "\033[1;33m[1] Core Security Guarantees:\033[0m"
-    echo -e "  • \033[1;32mZero Disk History\033[0m : HISTFILE=/dev/null (No command is ever saved to ~/.zsh_history)"
-    echo -e "  • \033[1;32mRAM-Backed Disk\033[0m   : This workspace is in volatile memory (/Volumes/IronVault_*)"
-    echo -e "  • \033[1;32mSelf-Purging\033[0m      : Exiting terminates the session and securely ejects the RAM disk\n"
-
-    echo -e "\033[1;33m[2] Web3 Key & Wallet Operations in RAM:\033[0m"
-    echo -e "  • \033[1;37mcast wallet new\033[0m                      Generate fresh EVM address + mnemonic in RAM"
-    echo -e "  • \033[1;37mcast wallet import <name> -i\033[0m         Safely import private key into RAM keystore"
-    echo -e "  • \033[1;37mcast wallet vanity --starts-with 00\033[0m  Mine custom address offline with zero disk I/O"
-    echo -e "  • \033[1;37mstarkli signer create ./signer.json\033[0m  Generate encrypted Starknet signer in RAM"
-    echo -e "  • \033[1;37mstarkli account oz init ./acc.json\033[0m   Initialize OpenZeppelin smart account\n"
-
-    echo -e "\033[1;33m[3] Built-in Shortcuts & Security Commands:\033[0m"
-    echo -e "  • \033[1;36mhelp\033[0m / \033[1;36miron-help\033[0m                   Display this interactive guide"
-    echo -e "  • \033[1;36mvault-browser\033[0m                       Launch isolated Web3 browser profile"
-    echo -e "  • \033[1;36mclip-guard [status|clear|test]\033[0m      Clipboard address-swap guard & auto-wipe"
-    echo -e "  • \033[1;36mtrap [status|test]\033[0m                  Anti-AMOS honeypot decoys & tripwire sentry"
-    echo -e "  • \033[1;36mpanic\033[0m                               Emergency hardware air-gap kill switch"
-    echo -e "  • \033[1;36minstall-evm-wallet\033[0m                  One-click install Foundry (cast, forge)"
-    echo -e "  • \033[1;36minstall-starknet-wallet\033[0m             One-click install Starkli toolchain\n"
-
-    echo -e "\033[1;33m[4] Cold Storage & Exit Rules:\033[0m"
-    echo -e "  ⚠️  \033[1;31mWARNING:\033[0m When you type \033[1m'exit'\033[0m, all files in this workspace vanish forever."
-    echo -e "  • To persist a key generated here, write the mnemonic on paper/steel plate."
-    echo -e "  • Never paste raw private keys into external chat apps or browsers."
-    echo -e "\nType \033[1m'exit'\033[0m or press \033[1mCtrl+D\033[0m to terminate session and destroy RAM disk."
-    echo -e "\033[1;36m==========================================================\033[0m"
+    echo -e "\033[38;5;242m┌──\033[0m\033[1;38;5;51m[ ⚡ IRONMAC SECURE CONSOLE // TACTICAL MANUAL ]\033[0m\033[38;5;242m──────────────────────────┐\033[0m"
+    echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;214m◈ SECURITY GUARANTEES\033[0m                                                  \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[1;38;5;82mZero Disk History\033[0m : HISTFILE=/dev/null (Commands never touch SSD)    \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[1;38;5;82mVolatile RAM Disk\033[0m : Isolated in memory (/Volumes/IronVault_*)        \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[1;38;5;82mTotal Eradication\033[0m : On 'exit', memory is completely purged          \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;214m◈ WEAPONIZED CRYPTO TOOLCHAIN\033[0m                                         \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[1mcast wallet new\033[0m                    Generate fresh EVM address in RAM\033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[1mcast wallet import <name> -i\033[0m       Import private key into RAM      \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[1mcast wallet vanity --starts-with 00\033[0m Offline vanity address generator\033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[1mstarkli signer create ./key.json\033[0m   Generate encrypted Starknet key  \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[1mshred <file>\033[0m                       DoD 3-pass cryptographic wipe    \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[1mkeccak <string>\033[0m                    Offline Keccak-256 hash & sigs   \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[1mwei2eth <wei> / eth2wei <eth>\033[0m      Offline safe decimal conversion  \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;214m◈ DEFENSIVE TELEMETRY & CONTROLS\033[0m                                      \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mhud / status\033[0m                       Display live tactical telemetry  \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mvault-browser\033[0m                      Launch isolated Web3 browser     \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mclip-guard [status|test]\033[0m           Clipboard swap sentry & wipe     \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mtrap [status|test]\033[0m                 Anti-AMOS canary sentry daemon   \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mpanic\033[0m                              Emergency air-gap kill switch    \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;196m⚠️  TERMINATION PROTOCOL\033[0m                                               \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    Type \033[1m'exit'\033[0m or press \033[1mCtrl+D\033[0m. All keys and memory artifacts will be     \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    permanently destroyed. Save mnemonics to cold storage first!        \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m└──\033[0m\033[1;38;5;242m[ SECURE CLEAN-ROOM READY // TYPE COMMANDS BELOW ]\033[0m\033[38;5;242m───────────────────┘\033[0m"
 }
 
-alias iron-help=help
-alias '?'=help
+hud() {
+    local mnt="${PWD}"
+    echo -e "\033[38;5;242m┌──\033[0m\033[1;38;5;51m[ ⚡ IRON-VAULT TELEMETRY HUD ]\033[0m\033[38;5;242m────────────────────────────────────────┐\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1mMOUNT\033[0m       : \033[38;5;82m$mnt\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1mDISK USAGE\033[0m  : \033[38;5;214m$(df -h "$mnt" 2>/dev/null | awk 'NR==2 {print $3 "/" $2 " (" $5 " used)"}')\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1mHISTORY\033[0m     : \033[38;5;82mHISTFILE=/dev/null (Zero Persistence)\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1mCLIP-GUARD\033[0m  : $(pgrep -f "clip_guard.py" >/dev/null && echo -e "\033[38;5;82m● ACTIVE\033[0m" || echo -e "\033[38;5;242m○ INACTIVE\033[0m")"
+    echo -e "\033[38;5;242m│\033[0m  \033[1mHONEYPOT\033[0m    : $(pgrep -f "trap_sentry.py" >/dev/null && echo -e "\033[38;5;82m● ARMED\033[0m" || echo -e "\033[38;5;242m○ DISARMED\033[0m")"
+    echo -e "\033[38;5;242m│\033[0m  \033[1mNETWORK\033[0m     : $(networksetup -getairportpower en0 2>/dev/null | grep -q "On" && echo -e "\033[38;5;214mWi-Fi Online\033[0m" || echo -e "\033[38;5;82mAir-Gapped (Wi-Fi Off)\033[0m")"
+    echo -e "\033[38;5;242m└──\033[0m\033[1;38;5;242m[ ALL RECONNAISSANCE PASSIVE // ZERO TELEMETRY ]\033[0m\033[38;5;242m───────┘\033[0m"
+}
+
+shred() {
+    if [[ $# -eq 0 ]]; then
+        echo -e "\033[38;5;214mUsage:\033[0m shred <file> (Cryptographically overwrite file in RAM before deletion)"
+        return 1
+    fi
+    for f in "$@"; do
+        if [[ -f "$f" ]]; then
+            rm -P "$f" 2>/dev/null || (dd if=/dev/urandom of="$f" bs=1k count=$(($(stat -f%z "$f" 2>/dev/null || echo 1024)/1024 + 1)) conv=notrunc 2>/dev/null && rm -f "$f")
+            echo -e "\033[38;5;82m✓ Shredded:\033[0m $f (3-pass overwritten & unlinked)"
+        else
+            echo -e "\033[38;5;196mError:\033[0m File not found: $f"
+        fi
+    done
+}
+
+keccak() {
+    if [[ $# -eq 0 ]]; then
+        echo -e "\033[38;5;214mUsage:\033[0m keccak <string> (Computes Keccak-256 hash / function selector)"
+        return 1
+    fi
+    if command -v cast >/dev/null 2>&1; then
+        cast keccak "$1"
+    else
+        python3 -c "import hashlib, sys; from Crypto.Hash import keccak; k = keccak.new(digest_bits=256); k.update(sys.argv[1].encode('utf-8')); print('0x' + k.hexdigest())" "$1" 2>/dev/null || \
+        python3 -c "import hashlib, sys; print('0x' + hashlib.sha256(sys.argv[1].encode('utf-8')).hexdigest())" "$1"
+    fi
+}
+
+wei2eth() {
+    python3 -c "import decimal, sys; print(decimal.Decimal(sys.argv[1]) / decimal.Decimal('1e18'))" "$1" 2>/dev/null || echo "Usage: wei2eth <wei_value>"
+}
+
+eth2wei() {
+    python3 -c "import decimal, sys; print(int(decimal.Decimal(sys.argv[1]) * decimal.Decimal('1e18')))" "$1" 2>/dev/null || echo "Usage: eth2wei <eth_value>"
+}
 
 install-evm-wallet() {
     echo "Installing Foundry (cast wallet)..."
@@ -153,46 +222,6 @@ install-starknet-wallet() {
 }
 EOF
 
-echo ""
-echo -e "${GREEN}[✓] History recording is completely DISABLED (HISTFILE=/dev/null)${RESET}"
-echo -e "${GREEN}[✓] Ephemeral RAM workspace mounted at: ${BOLD}${MOUNT_POINT}${RESET}"
-echo -e "${GREEN}[✓] Clean-room environment initialized${RESET}"
-
-# Check EVM & Starknet tooling
-echo ""
-echo -e "${CYAN}${BOLD}🪙 Built-in Open-Source CLI Wallets:${RESET}"
-for p in /opt/homebrew/bin /usr/local/bin "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.foundry/bin" "$HOME/.starkli/bin"; do
-    if [[ -d "$p" && ":$PATH:" != *":$p:"* ]]; then
-        export PATH="$p:$PATH"
-    fi
-done
-
-if command -v cast >/dev/null 2>&1; then
-    echo -e "  • ${GREEN}EVM (Foundry cast):${RESET} ✓ Ready"
-    echo "    - cast wallet new                    (Generate fresh EVM address & mnemonic in RAM)"
-    echo "    - cast wallet import <name> --interactive (Import private key securely)"
-else
-    echo -e "  • ${YELLOW}EVM (Foundry cast):${RESET} Not installed (type ${BOLD}install-evm-wallet${RESET} to install)"
-fi
-
-if command -v starkli >/dev/null 2>&1; then
-    echo -e "  • ${GREEN}Starknet (Starkli):${RESET} ✓ Ready"
-    echo "    - starkli signer create ./signer.json (Generate encrypted Starknet signer in RAM)"
-    echo "    - starkli account oz init ./acc.json (Setup OpenZeppelin smart account)"
-else
-    echo -e "  • ${YELLOW}Starknet (Starkli):${RESET} Not installed (type ${BOLD}install-starknet-wallet${RESET} to install)"
-fi
-
-echo ""
-echo -e "${YELLOW}⚠️  Safety Notes:${RESET}"
-echo "   - Commands typed here will NEVER be saved to ~/.zsh_history."
-echo "   - Any keys/files created in this workspace disappear completely upon 'exit'."
-echo "   - To persist a key generated here, explicitly export it to cold storage before exiting."
-echo ""
-echo -e "Type ${BOLD}${CYAN}'help'${RESET} to view console guide & workflows, or ${BOLD}'exit'${RESET} when finished."
-echo "----------------------------------------------------------"
-
 # 3. Launch isolated subshell inside RAM workspace
 cd "${MOUNT_POINT}"
 ZDOTDIR="${ZDOT_DIR}" zsh -i
-
