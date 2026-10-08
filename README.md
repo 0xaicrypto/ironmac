@@ -1,8 +1,8 @@
-# 🛡️ IronMac
+# <img src="assets/icons/shield.svg" width="28" height="28" valign="middle" alt="IronMac Shield" /> IronMac
 
 > **Hardened Web3 & Crypto Workstation for macOS.**  
 > Defend against macOS infostealers (AMOS), eliminate plaintext shell history key leaks, deploy active canary honeypots, and isolate high-value transaction signing into auditable clean-room environments.  
-> 📖 **Comprehensive Guide:** See the [IronMac User Manual (MANUAL.md)](MANUAL.md) for full operational documentation.
+> <img src="assets/icons/book.svg" width="16" height="16" valign="middle" alt="Guide" /> **Comprehensive Guide:** See the [IronMac User Manual (MANUAL.md)](MANUAL.md) for full operational documentation.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: macOS](https://img.shields.io/badge/Platform-macOS%2013%2B-orange.svg)]()
@@ -12,38 +12,38 @@
 
 ---
 
-## 📑 Table of Contents
+## <img src="assets/icons/toc.svg" width="20" height="20" valign="middle" /> Table of Contents
 
-- [📖 Full User Manual (MANUAL.md)](MANUAL.md)
-- [Why IronMac?](#-why-ironmac)
-- [Threat Model & Security Matrix](#-threat-model--security-matrix)
-- [Key Features](#-key-features)
-- [Typical Use Cases & Walkthroughs](#-typical-use-cases--walkthroughs)
-  - [1. Ephemeral "Burner" Wallets](#1--ephemeral-burner-wallets-airdrops--testnet-testing)
-  - [2. Daily Surfing vs. DeFi Signing (Anti-AMOS)](#2-️-segregating-daily-surfing-from-defi-signing-anti-amos-stealer)
-  - [3. Offline Cold Signing for Whales & Multi-Sig](#3--offline-cold-signing-whales--multi-sig-signers)
-  - [4. Public Wi-Fi & Conference Hardening](#4--public-wi-fi--crypto-conference-defense)
-  - [5. Active Anti-AMOS Honeypot Tripwire](#5--active-anti-amos-honeypot-tripwire-early-warning-alarm)
-  - [6. Clipboard Protection & Key Auto-Purge](#6--clipboard-protection--30-second-key-auto-purge)
-  - [7. Emergency Air-Gap Panic Protocol](#7--emergency-air-gap-panic-protocol)
-- [🤖 AI Agent Ecosystem & MCP Integration](#-ai-agent-ecosystem--mcp-integration)
+- [Full User Manual (MANUAL.md)](MANUAL.md)
+- [Why IronMac?](#why-ironmac)
+- [Threat Model & Security Matrix](#threat-model--security-matrix)
+- [Key Features](#key-features)
+- [Typical Use Cases & Walkthroughs](#typical-use-cases--walkthroughs)
+  - [1. Ephemeral "Burner" Wallets](#1-ephemeral-burner-wallets-airdrops--testnet-testing)
+  - [2. Daily Surfing vs. DeFi Signing (Anti-AMOS)](#2-segregating-daily-surfing-from-defi-signing-anti-amos-stealer)
+  - [3. Offline Cold Signing for Whales & Multi-Sig](#3-offline-cold-signing-whales--multi-sig-signers)
+  - [4. Public Wi-Fi & Conference Hardening](#4-public-wi-fi--crypto-conference-defense)
+  - [5. Active Anti-AMOS Honeypot Tripwire](#5-active-anti-amos-honeypot-tripwire-early-warning-alarm)
+  - [6. Clipboard Protection & Key Auto-Purge](#6-clipboard-protection--30-second-key-auto-purge)
+  - [7. Emergency Air-Gap Panic Protocol](#7-emergency-air-gap-panic-protocol)
+- [AI Agent Ecosystem & MCP Integration](#ai-agent-ecosystem--mcp-integration)
   - [1. The AI Agent Threat Model in Web3](#1-the-ai-agent-threat-model-in-web3)
   - [2. Dual Architecture: Guardrail + Autonomous Control Plane](#2-dual-architecture-guardrail--autonomous-control-plane)
   - [3. IronConsole vs. MCP Feature Parity Matrix](#3-ironconsole-vs-mcp-feature-parity-matrix)
   - [4. Model Context Protocol (MCP) Tools Reference](#4-model-context-protocol-mcp-tools-reference)
   - [5. Client Setup (Cursor, Claude Desktop, Antigravity)](#5-client-setup-cursor-claude-desktop-antigravity)
   - [6. Autonomous Agent Workflow Example](#6-autonomous-agent-workflow-example)
-- [Vault Browser vs. Vault Console: Key Differences](#-architectural-distinction-vault-browser-vs-vault-console)
-- [🖥️ Native macOS MenuBar HUD & Raycast](#-native-macos-menubar-hud--raycast)
-- [Quick Start & Installation](#-quick-start--installation)
-- [Command Reference](#-command-reference)
-- [System Architecture](#-system-architecture)
-- [Security & Responsible Disclosure](#-security--responsible-disclosure)
-- [License](#-license)
+- [Vault Browser vs. Vault Console: Key Differences](#architectural-distinction-vault-browser-vs-vault-console)
+- [Native macOS MenuBar HUD & Raycast](#native-macos-menubar-hud--raycast)
+- [Quick Start & Installation](#quick-start--installation)
+- [Command Reference](#command-reference)
+- [System Architecture](#system-architecture)
+- [Security & Responsible Disclosure](#security--responsible-disclosure)
+- [License](#license)
 
 ---
 
-## 🎯 Why IronMac?
+## <img src="assets/icons/target.svg" width="20" height="20" valign="middle" /> Why IronMac?
 
 MacBooks are the undisputed hardware of choice for Web3 founders, smart contract engineers, and cryptocurrency traders. However, **default macOS configurations leave critical security vulnerabilities for digital assets**:
 
@@ -57,7 +57,7 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 
 ---
 
-## 🛡️ Threat Model & Security Matrix
+## <img src="assets/icons/shield.svg" width="20" height="20" valign="middle" /> Threat Model & Security Matrix
 
 | Attack Vector / Threat | macOS Default State | IronMac Defense Mechanism |
 | :--- | :--- | :--- |
@@ -76,25 +76,25 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 
 ---
 
-## ✨ Key Features
+## <img src="assets/icons/sparkles.svg" width="20" height="20" valign="middle" /> Key Features
 
-- **🔍 Security Health Audit:** Scans your system's FileVault encryption, SIP, Gatekeeper, Application Firewall, and remote sharing services with an instant risk score.
-- **🔒 Automated Baseline Hardening:** One-click enables stealth mode, drops unsolicited ICMP pings, closes unauthenticated ports, and restricts remote automation.
-- **💻 Zero-Trace Vault Console:** Spawns an ephemeral, RAM-backed terminal session (`/Volumes/IronVault`) featuring a cyberpunk telemetry HUD, two-line tactical prompt, and shell history completely disabled (`HISTFILE=/dev/null`). Includes built-in `shred`, `keccak`, `wei2eth`, and offline wallet tooling. All commands and scratch files vanish from memory upon exit.
-- **🪙 Built-in EVM & Starknet CLI Wallets:** Instant, zero-trace wallet generation and transaction signing using Foundry's `cast` (EVM) and `starkli` (Starknet) directly inside the ephemeral RAM Disk.
-- **🪤 Active Anti-AMOS Honeypot Trap:** Deploys decoy canary keystores in standard infostealer targets (`~/.ethereum/keystore`, `~/.config/solana`, Documents) and runs a zero-CPU `kqueue` sentry daemon that immediately fires audio & desktop alarms when untrusted processes tamper with them.
-- **📋 Clipboard Guard:** Detects silent address swapping trojans (EVM, Solana, Bitcoin) and automatically purges copied private keys and seed phrases after a 30-second TTL.
-- **🚨 Emergency Air-Gap Panic Button:** Instant kill switch (`ironmac panic`) that powers off Wi-Fi, purges the clipboard, and shuts down all browsers and communication apps during suspected malware execution.
-- **🌐 Isolated "Vault" Browser Profile:** Spawns a hardened, telemetry-free Brave/Chrome profile stored in an isolated directory specifically dedicated to wallet extensions and DeFi transactions.
-- **🤖 Native TypeScript Model Context Protocol (MCP) Server:** Exposes a high-performance, type-safe security control plane (`ironmac mcp`) directly to AI coding assistants (Claude Desktop, Cursor, Antigravity, Cline, Windsurf) and autonomous on-chain agents. Agents can query system audit postures, verify crypto address checksums and poison patterns, scan codebases for leaked 64-hex private keys, verify canary tripwires, and trigger emergency network killswitches.
-- **📦 Curated Web3 Toolchain (via Brewfile):** Installs verified developer toolchains (Foundry, Rust, Solana CLI, Docker/OrbStack) and security utilities (LuLu firewall, hardware wallet tools) safely.
-- **💯 Zero-Trust & Zero Binaries:** Every line is written in transparent, clean Shell/TypeScript scripts. No black-box binaries, no telemetry, no tracking.
+- <img src="assets/icons/audit.svg" width="16" height="16" valign="middle" /> **Security Health Audit:** Scans your system's FileVault encryption, SIP, Gatekeeper, Application Firewall, and remote sharing services with an instant risk score.
+- <img src="assets/icons/lock.svg" width="16" height="16" valign="middle" /> **Automated Baseline Hardening:** One-click enables stealth mode, drops unsolicited ICMP pings, closes unauthenticated ports, and restricts remote automation.
+- <img src="assets/icons/terminal.svg" width="16" height="16" valign="middle" /> **Zero-Trace Vault Console:** Spawns an ephemeral, RAM-backed terminal session (`/Volumes/IronVault`) featuring a cyberpunk telemetry HUD, two-line tactical prompt, and shell history completely disabled (`HISTFILE=/dev/null`). Includes built-in `shred`, `keccak`, `wei2eth`, and offline wallet tooling. All commands and scratch files vanish from memory upon exit.
+- <img src="assets/icons/wallet.svg" width="16" height="16" valign="middle" /> **Built-in EVM & Starknet CLI Wallets:** Instant, zero-trace wallet generation and transaction signing using Foundry's `cast` (EVM) and `starkli` (Starknet) directly inside the ephemeral RAM Disk.
+- <img src="assets/icons/trap.svg" width="16" height="16" valign="middle" /> **Active Anti-AMOS Honeypot Trap:** Deploys decoy canary keystores in standard infostealer targets (`~/.ethereum/keystore`, `~/.config/solana`, Documents) and runs a zero-CPU `kqueue` sentry daemon that immediately fires audio & desktop alarms when untrusted processes tamper with them.
+- <img src="assets/icons/clipboard.svg" width="16" height="16" valign="middle" /> **Clipboard Guard:** Detects silent address swapping trojans (EVM, Solana, Bitcoin) and automatically purges copied private keys and seed phrases after a 30-second TTL.
+- <img src="assets/icons/panic.svg" width="16" height="16" valign="middle" /> **Emergency Air-Gap Panic Button:** Instant kill switch (`ironmac panic`) that powers off Wi-Fi, purges the clipboard, and shuts down all browsers and communication apps during suspected malware execution.
+- <img src="assets/icons/browser.svg" width="16" height="16" valign="middle" /> **Isolated "Vault" Browser Profile:** Spawns a hardened, telemetry-free Brave/Chrome profile stored in an isolated directory specifically dedicated to wallet extensions and DeFi transactions.
+- <img src="assets/icons/bot.svg" width="16" height="16" valign="middle" /> **Native TypeScript Model Context Protocol (MCP) Server:** Exposes a high-performance, type-safe security control plane (`ironmac mcp`) directly to AI coding assistants (Claude Desktop, Cursor, Antigravity, Cline, Windsurf) and autonomous on-chain agents. Agents can query system audit postures, verify crypto address checksums and poison patterns, scan codebases for leaked 64-hex private keys, verify canary tripwires, and trigger emergency network killswitches.
+- <img src="assets/icons/package.svg" width="16" height="16" valign="middle" /> **Curated Web3 Toolchain (via Brewfile):** Installs verified developer toolchains (Foundry, Rust, Solana CLI, Docker/OrbStack) and security utilities (LuLu firewall, hardware wallet tools) safely.
+- <img src="assets/icons/check.svg" width="16" height="16" valign="middle" /> **Zero-Trust & Zero Binaries:** Every line is written in transparent, clean Shell/TypeScript scripts. No black-box binaries, no telemetry, no tracking.
 
 ---
 
-## 💡 Typical Use Cases & Walkthroughs
+## <img src="assets/icons/terminal.svg" width="20" height="20" valign="middle" /> Typical Use Cases & Walkthroughs
 
-### 1. 🪙 Ephemeral "Burner" Wallets (Airdrops & Testnet Testing)
+### <img src="assets/icons/wallet.svg" width="16" height="16" valign="middle" /> 1. Ephemeral "Burner" Wallets (Airdrops & Testnet Testing)
 * **The Risk:** Interacting with new testnets, meme tokens, or claiming airdrops often requires generating quick burner keys. Doing this normally leaves raw private keys in text files and permanently logged in `~/.zsh_history`.
 * **The IronMac Way:**
   ```bash
@@ -122,7 +122,7 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
   # -> Zero private keys or commands ever touched your SSD or ~/.zsh_history.
   ```
 
-### 2. 🛡️ Segregating "Daily Surfing" from "DeFi Signing" (Anti-AMOS Stealer)
+### <img src="assets/icons/browser.svg" width="16" height="16" valign="middle" /> 2. Segregating "Daily Surfing" from "DeFi Signing" (Anti-AMOS Stealer)
 * **The Risk:** You click a fake Zoom, Calendly, or game-test link on Telegram/Discord. An infostealer (like AMOS) executes and immediately dumps your default Chrome profile where MetaMask or Phantom lives.
 * **The IronMac Way:**
   ```bash
@@ -140,7 +140,7 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
   > **Will my wallet extensions (MetaMask, Rabby) stay saved?**  
   > **Yes, absolutely.** Unlike the ephemeral Vault Console, the Vault Browser is **persistent**. All installed wallet extensions, custom RPCs, and encrypted keystores are securely stored in your dedicated `~/Library/Application Support/IronMacVault/Profile` directory. You do **NOT** need to re-import your seed phrase every time—simply launch `ironmac-vault-browser` and unlock your wallet with your password as usual.
 
-### 3. ❄️ Offline Cold Signing (Whales & Multi-Sig Signers)
+### <img src="assets/icons/snowflake.svg" width="16" height="16" valign="middle" /> 3. Offline Cold Signing (Whales & Multi-Sig Signers)
 * **The Risk:** Signing multi-sig transactions or large transfers on an unhardened, internet-connected machine exposes your keys to memory-scraping malware or clipboard address substitution.
 * **The IronMac Way:**
   ```bash
@@ -164,7 +164,7 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
   exit
   ```
 
-### 4. ☕ Public Wi-Fi & Crypto Conference Defense
+### <img src="assets/icons/coffee.svg" width="16" height="16" valign="middle" /> 4. Public Wi-Fi & Crypto Conference Defense
 * **The Risk:** Airport Wi-Fi and hacker-heavy crypto conferences (Devcon, EthCC, Token2049) are hotbeds for automated port scanning, rogue DNS responder attacks, and local network probes.
 * **The IronMac Way:**
   ```bash
@@ -175,7 +175,7 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
   ironmac harden
   ```
 
-### 5. 🪤 Active Anti-AMOS Honeypot Tripwire (Early Warning Alarm)
+### <img src="assets/icons/trap.svg" width="16" height="16" valign="middle" /> 5. Active Anti-AMOS Honeypot Tripwire (Early Warning Alarm)
 * **The Risk:** A disguised `.pkg` or phishing malware executes in background and starts scanning your system directories for Ethereum keystores or Solana keypairs.
 * **The IronMac Way:**
   ```bash
@@ -190,10 +190,10 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 
   # 3. Simulate a test probe to verify desktop alert & alarm sound
   ironmac trap test
-  # -> Instant macOS desktop notification: "🚨 IronMac Honeypot Triggered!"
+  # -> Instant macOS desktop notification: "[ALERT] IronMac Honeypot Triggered!"
   ```
 
-### 6. 📋 Clipboard Protection & 30-Second Key Auto-Purge
+### <img src="assets/icons/clipboard.svg" width="16" height="16" valign="middle" /> 6. Clipboard Protection & 30-Second Key Auto-Purge
 * **The Risk:** You copy a private key or 12-word seed phrase to import it into a wallet. It remains in your macOS clipboard indefinitely, readable by any background app or telemetry script. Additionally, clipboard malware can swap copied `0x...` addresses with attacker addresses.
 * **The IronMac Way:**
   ```bash
@@ -204,11 +204,11 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
   # If a rapid address swap occurs, an alarm sounds and the intrusion is logged.
 
   # 3. When a private key or mnemonic is copied, IronMac initiates a 30-second TTL:
-  # -> Desktop alert: "⚠️ Private key detected. Auto-wiping in 30s."
+  # -> Desktop alert: "[WARN] Private key detected. Auto-wiping in 30s."
   # -> After 30 seconds: Pasteboard is automatically wiped without human intervention.
   ```
 
-### 7. 🚨 Emergency Air-Gap Panic Protocol
+### <img src="assets/icons/panic.svg" width="16" height="16" valign="middle" /> 7. Emergency Air-Gap Panic Protocol
 * **The Risk:** You accidentally ran a suspicious script, opened a fake `.pkg` installer, or suspect an active remote access trojan on your machine.
 * **The IronMac Way:**
   ```bash
@@ -227,7 +227,7 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 
 ---
 
-## 🤖 AI Agent Ecosystem & MCP Integration
+## <img src="assets/icons/bot.svg" width="20" height="20" valign="middle" /> AI Agent Ecosystem & MCP Integration
 
 Modern Web3 developers, quant researchers, and crypto founders increasingly pair-program with AI coding assistants (**Cursor**, **Claude Code**, **Antigravity**, **Cline**) and deploy autonomous on-chain agents (**AI hedge funds, autonomous arbitrage bots, automated liquidators**). 
 
@@ -284,7 +284,7 @@ When running or developing autonomous Web3 agents, IronMac provides an official 
 
 Every defensive capability and cryptographic tool in IronMac is **100% symmetrically aligned** between human developers inside the secure terminal (`ironmac console`) and autonomous AI agents connecting via stdio (`ironmac mcp`):
 
-| Capability / Domain | 💻 IronConsole Terminal Command | 🤖 AI Agent MCP Tool | Core Protective Value |
+| Capability / Domain | IronConsole Terminal Command | AI Agent MCP Tool | Core Protective Value |
 | :--- | :--- | :--- | :--- |
 | **System Security Audit** | `audit` | `audit_system_security` | Live FileVault, SIP, Firewall, Gatekeeper & SSH posture evaluation |
 | **Address Verification & EIP-55** | `verify-address <addr>` | `verify_crypto_address` | True Keccak-256 EIP-55 checksum validation & vanity poisoning detection |
@@ -449,9 +449,9 @@ await mcp.callTool("toggle_airgap", { action: "off" });
 
 ---
 
-## ⚖️ Architectural Distinction: Vault Browser vs. Vault Console
+## <img src="assets/icons/scale.svg" width="20" height="20" valign="middle" /> Architectural Distinction: Vault Browser vs. Vault Console
 
-| Feature | 🌐 Vault Browser (`ironmac-vault-browser`) | 💻 Vault Console (`ironmac console`) |
+| Feature | Vault Browser (`ironmac vault-browser`) | Vault Console (`ironmac console`) |
 | :--- | :--- | :--- |
 | **Data Lifecycle** | **Persistent** (Stored in `~/Library/.../IronMacVault`) | **Ephemeral** (Pure RAM Disk, auto-wiped on exit) |
 | **Wallet State** | **Persistent** (MetaMask & accounts stay saved) | **Non-Persistent** (Zero trace, vanishes upon `exit`) |
@@ -460,25 +460,25 @@ await mcp.callTool("toggle_airgap", { action: "off" });
 
 ---
 
-## 🖥️ Native macOS MenuBar HUD & Raycast
+## <img src="assets/icons/display.svg" width="20" height="20" valign="middle" /> Native macOS MenuBar HUD & Raycast
 
 IronMac pairs CLI-grade security with native macOS desktop ergonomics. You can monitor your fortress status and trigger critical actions without touching a terminal.
 
 ```text
        ┌────────────────────────────────────────────────────────┐
-       │ 🛡️ IronMac Fortress v0.5.0                            │
+       │ [*] IronMac Fortress v0.5.0                            │
        │ ● Active Defenses: ARMED                               │
        │ ────────────────────────────────────────────────────── │
-       │ ⚡ Launch IronVault Console                        ⌘C   │
-       │ 🌐 Launch Vault Browser                            ⌘B   │
+       │ > Launch IronVault Console                         ⌘C   │
+       │ > Launch Vault Browser                             ⌘B   │
        │ ────────────────────────────────────────────────────── │
-       │ 📶 Hardware Air-Gap: ONLINE (Wi-Fi ON)             ⌘A   │
-       │ 📋 Purge Pasteboard Memory                         ⌘K   │
-       │ 🔍 Run Security Health Audit...                        │
+       │ ~ Hardware Air-Gap: ONLINE (Wi-Fi ON)              ⌘A   │
+       │ ~ Purge Pasteboard Memory                          ⌘K   │
+       │ ? Run Security Health Audit...                         │
        │ ────────────────────────────────────────────────────── │
-       │ 🚨 EMERGENCY AIR-GAP PANIC                         ⌘P   │
+       │ [!] EMERGENCY AIR-GAP PANIC                        ⌘P   │
        │ ────────────────────────────────────────────────────── │
-       │ Quit IronMac Menu                                  ⌘Q   │
+       │ x Quit IronMac Menu                                ⌘Q   │
        └────────────────────────────────────────────────────────┘
 ```
 
@@ -490,7 +490,7 @@ Built purely in native Swift Cocoa / AppKit (`NSStatusBar` & `NSMenu`):
 - **Instant Hardware Air-Gap:** Toggle Wi-Fi hardware off/on in 1 click via macOS `networksetup`.
 - **One-Click Vault Console & Browser:** Instantly launch your ephemeral RAM disk workspace or isolated MetaMask profile.
 - **1-Click Pasteboard Purge:** Wipe system clipboard memory clean to prevent key theft.
-- **🚨 Emergency Panic Button:** Double-confirmation modal triggers immediate network cutoff, clipboard shredding, app termination, and screen lock in `<1s`.
+- **Emergency Panic Button:** Double-confirmation modal triggers immediate network cutoff, clipboard shredding, app termination, and screen lock in `<1s`.
 
 ```bash
 # Launch MenuBar Companion
@@ -506,12 +506,12 @@ If you use [Raycast](https://raycast.com/), IronMac provides 6 native script com
 
 | Command | File | Description | Shortcut / Mode |
 | :--- | :--- | :--- | :--- |
-| **🛡️ IronMac HUD** | `ironmac-hud.sh` | Live security telemetry (SIP, FileVault, Firewall, Trap, AirGap) | Inline View |
-| **📶 Air-Gap Switch** | `ironmac-airgap.sh` | 1-click hardware Wi-Fi disconnect / reconnect | Action |
-| **🔍 Verify Address** | `ironmac-verify-address.sh` | EIP-55 checksum validation & anti-poisoning analysis | Modal Prompt |
-| **⚡ Vault Console** | `ironmac-console.sh` | Spawns zero-trace ephemeral RAM terminal in Terminal.app | Action |
-| **🚨 EMERGENCY PANIC** | `ironmac-panic.sh` | High-priority emergency threat cutoff & isolation | Action |
-| **🔑 Scan Secrets** | `ironmac-scan-secrets.sh` | Scan workspace/path for leaked private keys, mnemonics, `.env` | File / Folder Target |
+| <img src="assets/icons/shield.svg" width="14" height="14" valign="middle" /> **IronMac HUD** | `ironmac-hud.sh` | Live security telemetry (SIP, FileVault, Firewall, Trap, AirGap) | Inline View |
+| <img src="assets/icons/wifi.svg" width="14" height="14" valign="middle" /> **Air-Gap Switch** | `ironmac-airgap.sh` | 1-click hardware Wi-Fi disconnect / reconnect | Action |
+| <img src="assets/icons/audit.svg" width="14" height="14" valign="middle" /> **Verify Address** | `ironmac-verify-address.sh` | EIP-55 checksum validation & anti-poisoning analysis | Modal Prompt |
+| <img src="assets/icons/terminal.svg" width="14" height="14" valign="middle" /> **Vault Console** | `ironmac-console.sh` | Spawns zero-trace ephemeral RAM terminal in Terminal.app | Action |
+| <img src="assets/icons/panic.svg" width="14" height="14" valign="middle" /> **EMERGENCY PANIC** | `ironmac-panic.sh` | High-priority emergency threat cutoff & isolation | Action |
+| <img src="assets/icons/key.svg" width="14" height="14" valign="middle" /> **Scan Secrets** | `ironmac-scan-secrets.sh` | Scan workspace/path for leaked private keys, mnemonics, `.env` | File / Folder Target |
 
 **How to Install in Raycast:**
 1. Open **Raycast Preferences** (`⌘,`) -> **Extensions** -> **Script Commands**.
@@ -520,7 +520,7 @@ If you use [Raycast](https://raycast.com/), IronMac provides 6 native script com
 
 ---
 
-## 🚀 Quick Start & Installation
+## <img src="assets/icons/rocket.svg" width="20" height="20" valign="middle" /> Quick Start & Installation
 
 ### Option 1: Official Homebrew Tap (Recommended for macOS Users)
 
@@ -564,11 +564,11 @@ chmod +x ./bin/ironmac
 
 ---
 
-## 💻 Command Reference
+## <img src="assets/icons/terminal.svg" width="20" height="20" valign="middle" /> Command Reference
 
 ```text
 =====================================================
-            🛡️ IronMac - Web3 Workstation CLI
+            IronMac - Web3 Workstation CLI
 =====================================================
 
 Usage: ironmac <command> [options]
@@ -592,7 +592,7 @@ Commands:
 
 ---
 
-## 🏗️ System Architecture
+## <img src="assets/icons/layers.svg" width="20" height="20" valign="middle" /> System Architecture
 
 ```mermaid
 flowchart TD
@@ -629,7 +629,7 @@ flowchart TD
 
 ---
 
-## 🛡️ Security & Responsible Disclosure
+## <img src="assets/icons/shield.svg" width="20" height="20" valign="middle" /> Security & Responsible Disclosure
 
 IronMac adheres to a strict **"Don't Trust, Verify"** philosophy:
 
@@ -639,12 +639,12 @@ IronMac adheres to a strict **"Don't Trust, Verify"** philosophy:
 
 ---
 
-## 🤝 Contributing
+## <img src="assets/icons/users.svg" width="20" height="20" valign="middle" /> Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request or open an Issue for new security recommendations, tool integrations, or platform improvements.
 
 ---
 
-## ⚖️ License
+## <img src="assets/icons/scale.svg" width="20" height="20" valign="middle" /> License
 
 Distributed under the [MIT License](LICENSE). Copyright (c) 2026 0xaicrypto.

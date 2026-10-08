@@ -1,11 +1,11 @@
-# 🛡️ IronMac 官方完整使用手册 (User Manual)
+# <img src="assets/icons/shield.svg" width="28" height="28" valign="middle" alt="IronMac Shield" /> IronMac 官方完整使用手册 (User Manual)
 
 > **Fortress-Grade Web3 Workstation & AI Agent Defense Suite for macOS**  
 > 版本：`v0.5.0` | 适用平台：macOS 13.0+ (Ventura / Sonoma / Sequoia / 后续版本) | 架构：Apple Silicon (M1/M2/M3/M4) & Intel x86_64
 
 ---
 
-## 📑 目录 (Table of Contents)
+## <img src="assets/icons/toc.svg" width="20" height="20" valign="middle" /> 目录 (Table of Contents)
 
 1. [关于 IronMac 与核心设计哲学](#1-关于-ironmac-与核心设计哲学)
 2. [环境准备与安装部署](#2-环境准备与安装部署)
@@ -302,12 +302,12 @@ Usage: ironmac <command> [options]
   ironmac menu
   ```
 * **核心特性**：
-  - **零 Dock 侵占**：采用 macOS `.accessory` 激活策略，完全隐藏于状态栏（呈现 🛡️ 盾牌图标），不占用任何 Dock 栏宝贵空间。
+  - **零 Dock 侵占**：采用 macOS `.accessory` 激活策略，完全隐藏于状态栏（呈现盾牌图标），不占用任何 Dock 栏宝贵空间。
   - **超低资源开销**：常驻内存仅 `< 15 MB`，采用异步事件机制，空闲状态 CPU 占用率绝对 `0.0%`。
   - **一键物理断网 (Hardware Air-Gap)**：快捷键 `⌘A` 或点击菜单，通过系统 `networksetup` 毫秒级断开/恢复 `en0` 物理网卡供电。
   - **一键唤起 RAM 控制台与隔离浏览器**：点击菜单瞬间在独立终端中挂载 RAM Disk 保险库 (`⌘C`) 或拉起隔离 Chrome 交易仓 (`⌘B`)。
   - **一键物理剪贴板熔断**：快捷键 `⌘K` 瞬间将系统剪贴板内存抹除至 `/dev/null`。
-  - **🚨 桌面应急逃生按钮**：快捷键 `⌘P` 弹出高危警示确认框，确认后即刻触发全套物理断网、进程绞杀与锁屏逃生流程。
+  - <img src="assets/icons/panic.svg" width="14" height="14" valign="middle" /> **桌面应急逃生按钮**：快捷键 `⌘P` 弹出高危警示确认框，确认后即刻触发全套物理断网、进程绞杀与锁屏逃生流程。
 
 ---
 
@@ -345,7 +345,7 @@ Usage: ironmac <command> [options]
 在 IronVault 控制台中，内置了丰富的武器级实用命令：
 
 ```text
-╭─[⚡ IRON-VAULT]─[HIST:OFF]─[~]
+╭─[IRON-VAULT]─[HIST:OFF]─[~]
 ╰─❯ help
 ```
 
@@ -360,7 +360,7 @@ audit
 ```bash
 # 校验未经过 Checksum 大小写转换的地址
 verify-address 0xd8da6bf26964af9d7eed9e03e53415d37aa96045
-# 输出: ⚠️ [WARN] 格式正确，但缺失 EIP-55 大小写校验！建议转为: 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+# 输出: [WARN] 格式正确，但缺失 EIP-55 大小写校验！建议转为: 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 
 # 校验合法的 EIP-55 Checksum 地址
 verify-address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
@@ -368,11 +368,11 @@ verify-address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 
 # 校验被投毒或损坏的地址 (例如大小写被恶意篡改)
 verify-address 0xd8DA6BF26964aF9D7eEd9e03E53415D37aA96045
-# 输出: ❌ [FAIL] EIP-55 校验和损坏！检测到大小写不匹配，疑似仿造或打错！
+# 输出: [FAIL] EIP-55 校验和损坏！检测到大小写不匹配，疑似仿造或打错！
 
 # 投毒地址前导零预警
 verify-address 0x000000008453b3F13fF9d658c213C12b55f10b24
-# 输出: ⚠️ [ALERT] 检测到高危虚荣前导零（6个以上0），严查地址首尾投毒欺诈！
+# 输出: [ALERT] 检测到高危虚荣前导零（6个以上0），严查地址首尾投毒欺诈！
 ```
 
 #### 3. `scan-secrets [path]` — 代码库明文私钥扫描
@@ -479,7 +479,7 @@ exit
 ```
 **安全销毁序列将立即执行：**
 ```text
-┌──[ ⚡ INITIATING SECURE TEARDOWN ]─────────────────────────────────┐
+┌──[ INITIATING SECURE TEARDOWN ]─────────────────────────────────┐
 │  Purging ephemeral RAM disk (/dev/disk4)... ✓ PURGED
 │  Scrubbing temporary environment variables & zdot... ✓ CLEARED
 │  Sanitizing volatile memory & terminal buffer... ✓ CLEAN
@@ -634,19 +634,19 @@ async function safeExecuteTransfer(recipient: string, amount: string) {
 
 ```text
        ┌────────────────────────────────────────────────────────┐
-       │ 🛡️ IronMac Fortress v0.5.0                            │
+       │ [*] IronMac Fortress v0.5.0                            │
        │ ● Active Defenses: ARMED                               │
        │ ────────────────────────────────────────────────────── │
-       │ ⚡ Launch IronVault Console                        ⌘C   │
-       │ 🌐 Launch Vault Browser                            ⌘B   │
+       │ > Launch IronVault Console                         ⌘C   │
+       │ > Launch Vault Browser                             ⌘B   │
        │ ────────────────────────────────────────────────────── │
-       │ 📶 Hardware Air-Gap: ONLINE (Wi-Fi ON)             ⌘A   │
-       │ 📋 Purge Pasteboard Memory                         ⌘K   │
-       │ 🔍 Run Security Health Audit...                        │
+       │ ~ Hardware Air-Gap: ONLINE (Wi-Fi ON)              ⌘A   │
+       │ ~ Purge Pasteboard Memory                          ⌘K   │
+       │ ? Run Security Health Audit...                         │
        │ ────────────────────────────────────────────────────── │
-       │ 🚨 EMERGENCY AIR-GAP PANIC                         ⌘P   │
+       │ [!] EMERGENCY AIR-GAP PANIC                        ⌘P   │
        │ ────────────────────────────────────────────────────── │
-       │ Quit IronMac Menu                                  ⌘Q   │
+       │ x Quit IronMac Menu                                ⌘Q   │
        └────────────────────────────────────────────────────────┘
 ```
 
@@ -654,7 +654,7 @@ async function safeExecuteTransfer(recipient: string, amount: string) {
 - **零框架依赖 (Pure AppKit/Cocoa)**：不使用任何臃肿的 Electron、Tauri 或 Chromium，仅 80KB 原生编译机器码，常驻内存 `< 15 MB`。
 - **`.accessory` 运行策略**：不在 Dock 栏显示图标，不干扰日常应用切换，仅作为顶栏防御中枢常驻。
 - **硬件级网卡通断 (Hardware Air-Gap)**：直接对接系统底层 `networksetup`，单次点击或快捷键 `⌘A` 即可关闭/开启 `en0` 物理 Wi-Fi 芯片供电。
-- **应急逃生安全气囊 (Panic Modal)**：点击 `🚨 EMERGENCY AIR-GAP PANIC` 或按下 `⌘P`，弹出防误触红色模态提示，确认后 1 秒内完成网络断开、剪贴板擦除与屏幕锁定。
+- **应急逃生安全气囊 (Panic Modal)**：点击 `[!] EMERGENCY AIR-GAP PANIC` 或按下 `⌘P`，弹出防误触红色模态提示，确认后 1 秒内完成网络断开、剪贴板擦除与屏幕锁定。
 - **开机自启动配置**：
   若希望每次开机自动常驻状态栏，打开 **macOS 系统设置 > 通用 > 登录项**，添加 `~/.ironmac/bin/ironmac-menu`（或 Homebrew 路径 `/opt/homebrew/bin/ironmac-menu`）即可。
 
@@ -739,16 +739,16 @@ async function safeExecuteTransfer(recipient: string, amount: string) {
 
 ### 8.2 必须立即停止的十大致命反模式 (The 10 Cardinal Sins)
 
-1. ❌ **Apple Notes (备忘录) / 印象笔记**：明文直接同步到云端服务器，木马最优先批量遍历爬取。
-2. ❌ **微信文件传输助手 / Telegram Saved Messages**：很多所谓的“自发自存”在本地有完全未加密的缓存数据库文件（如 Telegram 的 `tdata`），AMOS 木马只需 0.1 秒即可复制走全部内容。
-3. ❌ **手机或电脑截图 / 存入相册**：各类扫描类恶意软件自带 OCR 引擎，一秒批量识图提取助记词。
-4. ❌ **在 Git 仓库留下 `.env`**：即使是 Private 私有仓库，只要不慎 `git push`，就会被全网扫描机器人秒抓。
-5. ❌ **在终端中直接通过参数输入私钥**：例如直接敲 `cast wallet import --private-key 0x...`，该私钥已直接永久刻在硬盘的 `~/.zsh_history` 中。
-6. ❌ **复制完私钥后任由其停留在剪贴板**：未保护的剪贴板可被任何拥有无感权限的日常 App 读取。
-7. ❌ **为同一台机器的日常上网浏览器安装高价值钱包插件**：翻译插件、改图插件被注入恶意更新后可截获交易签名。
-8. ❌ **使用密码管理器未开启二次确认直接明文记录私钥**。
-9. ❌ **在公共咖啡厅或大会未开启隐身防火墙直接连接免密 Wi-Fi**。
-10. ❌ **直接使用 LLM AI Agent 代写代码时将包含私钥的文件加入上下文**。
+1. [x] **Apple Notes (备忘录) / 印象笔记**：明文直接同步到云端服务器，木马最优先批量遍历爬取。
+2. [x] **微信文件传输助手 / Telegram Saved Messages**：很多所谓的“自发自存”在本地有完全未加密的缓存数据库文件（如 Telegram 的 `tdata`），AMOS 木马只需 0.1 秒即可复制走全部内容。
+3. [x] **手机或电脑截图 / 存入相册**：各类扫描类恶意软件自带 OCR 引擎，一秒批量识图提取助记词。
+4. [x] **在 Git 仓库留下 `.env`**：即使是 Private 私有仓库，只要不慎 `git push`，就会被全网扫描机器人秒抓。
+5. [x] **在终端中直接通过参数输入私钥**：例如直接敲 `cast wallet import --private-key 0x...`，该私钥已直接永久刻在硬盘的 `~/.zsh_history` 中。
+6. [x] **复制完私钥后任由其停留在剪贴板**：未保护的剪贴板可被任何拥有无感权限的日常 App 读取。
+7. [x] **为同一台机器的日常上网浏览器安装高价值钱包插件**：翻译插件、改图插件被注入恶意更新后可截获交易签名。
+8. [x] **使用密码管理器未开启二次确认直接明文记录私钥**。
+9. [x] **在公共咖啡厅或大会未开启隐身防火墙直接连接免密 Wi-Fi**。
+10. [x] **直接使用 LLM AI Agent 代写代码时将包含私钥的文件加入上下文**。
 
 ---
 
