@@ -31,7 +31,7 @@ class Ironmac < Formula
   end
 
   test do
-    assert_match "IronMac v#{version}", shell_output("#{bin}/ironmac --version")
-    assert_match "Usage: ironmac <command>", shell_output("#{bin}/ironmac help")
+    assert_match "IronMac v#{version}", shell_output("#{bin}/ironmac version")
+    assert_match "ironmac <command>", shell_output("#{bin}/ironmac help")
   end
 end
