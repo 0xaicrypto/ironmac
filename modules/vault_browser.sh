@@ -21,26 +21,21 @@ echo ""
 VAULT_DIR="${HOME}/Library/Application Support/IronMacVault"
 mkdir -p "${VAULT_DIR}"
 
-# Detect available browsers (Brave preferred for privacy, Google Chrome as fallback)
-BROWSER_BIN=""
-BROWSER_NAME=""
-
+APP_NAME=""
 if [[ -d "/Applications/Brave Browser.app" ]]; then
-    BROWSER_BIN="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
-    BROWSER_NAME="Brave Browser"
+    APP_NAME="Brave Browser"
 elif [[ -d "/Applications/Google Chrome.app" ]]; then
-    BROWSER_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-    BROWSER_NAME="Google Chrome"
+    APP_NAME="Google Chrome"
 fi
 
-if [[ -z "${BROWSER_BIN}" ]]; then
+if [[ -z "${APP_NAME}" ]]; then
     echo -e "${YELLOW}Neither Brave Browser nor Google Chrome was detected in /Applications.${RESET}"
     echo "You can install Brave via: brew install --cask brave-browser"
     exit 0
 fi
 
 PROFILE_PATH="${VAULT_DIR}/Profile"
-mkdir -p "${PROFILE_PATH}"
+mkdir -p "${PROFILE_PATH}/Crashpad"
 
 # Create launcher script
 LAUNCHER_SCRIPT="${HOME}/.local/bin/ironmac-vault-browser"
@@ -49,10 +44,13 @@ mkdir -p "$(dirname "${LAUNCHER_SCRIPT}")"
 cat <<EOF > "${LAUNCHER_SCRIPT}"
 #!/usr/bin/env bash
 # IronMac Isolated Vault Browser Launcher
-exec "${BROWSER_BIN}" \\
+# Launches a clean, segregated instance via macOS LaunchServices
+open -na "${APP_NAME}" --args \\
     --user-data-dir="${PROFILE_PATH}" \\
     --no-first-run \\
     --no-default-browser-check \\
+    --disable-crash-reporter \\
+    --crash-dumps-dir="${PROFILE_PATH}/Crashpad" \\
     "\$@"
 EOF
 
