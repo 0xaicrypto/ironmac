@@ -29,6 +29,7 @@ MacBooks are the undisputed hardware of choice for Web3 founders, developers, an
 - **🔒 One-Click Baseline Hardening:** Enables stealth mode, closes unauthenticated ports, blocks unverified remote execution, and configures secure DNS-over-HTTPS.
 - **💻 Zero-Trace Vault Console:** Launches an ephemeral, RAM-backed terminal session (`/Volumes/IronVault`) with shell history completely disabled (`HISTFILE=/dev/null`). All commands and scratch files disappear from memory upon exit.
 - **🪙 Built-in EVM & Starknet CLI Wallets:** Instant, zero-trace wallet generation and transaction signing using Foundry's `cast` (EVM) and `starkli` (Starknet) directly inside the ephemeral RAM Disk.
+- **🪤 Active Anti-AMOS Honeypot Trap:** Deploys decoy canary keystores in standard infostealer search targets (`~/.ethereum/keystore`, `~/.config/solana`, Documents) and runs a zero-CPU `kqueue` sentry daemon that immediately fires audio & desktop alarms when untrusted processes tamper with them.
 - **🌐 Isolated "Vault" Browser Profile:** Spawns a hardened, telemetry-free Brave/Chrome profile stored in an isolated directory specifically dedicated to wallet extensions and DeFi transactions.
 - **📦 Curated Web3 Stack (via Brewfile):** Installs verified developer toolchains (Foundry, Rust, Solana CLI, Docker/OrbStack) and security utilities (LuLu firewall, hardware wallet tools) safely.
 - **💯 Zero-Trust & Zero Binaries:** Every line is written in transparent, clean Shell/Homebrew scripts. No black-box binaries, no telemetry, no tracking.
@@ -108,6 +109,24 @@ MacBooks are the undisputed hardware of choice for Web3 founders, developers, an
   ironmac harden
   ```
 
+### 5. 🪤 Active Anti-AMOS Honeypot Tripwire (Early Warning Alarm)
+* **The Risk:** A disguised `.pkg` or phishing malware executes in background and starts scanning your system directories for Ethereum keystores or Solana keypairs.
+* **The IronMac Way:**
+  ```bash
+  # 1. Arm canary wallet decoys and start the background kqueue sentry
+  ironmac trap start
+
+  # 2. Check armed status and active decoy targets
+  ironmac trap status
+  # -> ARMED: ~/.ethereum/keystore/UTC--canary-ironmac-trap.json
+  # -> ARMED: ~/.config/solana/id.json
+  # -> ARMED: ~/Documents/.ironmac_canary/wallet_backup_do_not_share.txt
+
+  # 3. Simulate a test probe to verify desktop alert & alarm sound
+  ironmac trap test
+  # -> Instant macOS desktop notification: "🚨 IronMac Honeypot Triggered!"
+  ```
+
 ### ⚖️ Architectural Distinction: Vault Browser vs. Vault Console
 
 | Feature | 🌐 Vault Browser (`ironmac-vault-browser`) | 💻 Vault Console (`ironmac console`) |
@@ -152,8 +171,9 @@ Commands:
   harden         Apply recommended security baselines and network stealth
   vault-browser  Create an isolated, dedicated Web3 wallet browser profile
   console        Launch a zero-trace, ephemeral RAM-backed secure terminal
+  trap           Anti-AMOS honeypot decoys & tripwire sentry [start|stop|status|test]
   tools          Interactive installer for curated Web3 developer & trader tools
-  all            Run the complete interactive setup wizard
+  all            Run the complete guided setup wizard
   version        Print IronMac version
   help           Display this help message
 ```
@@ -170,6 +190,7 @@ flowchart TD
         CLI --> Audit["modules/audit.sh<br/>(FileVault, Firewall, Gatekeeper, SIP)"]
         CLI --> Harden["modules/harden.sh<br/>(Stealth Mode, Service Lock, TCC Guard)"]
         CLI --> Console["modules/console.sh<br/>(Zero-History & RAM Disk)"]
+        CLI --> Trap["modules/trap.sh<br/>(Canary Decoys & kqueue Sentry)"]
         CLI --> VaultBrowser["modules/vault_browser.sh<br/>(Isolated Profile & Sandbox)"]
         CLI --> Web3Tools["modules/web3_tools.sh<br/>(Curated Brewfile & Dev Stacks)"]
     end
@@ -177,6 +198,7 @@ flowchart TD
     subgraph "Protected Workstation State"
         Harden --> SecOS["Hardened macOS Baseline"]
         Console --> RAMSpace["Ephemeral /Volumes/IronVault/ (RAM)"]
+        Trap --> Tripwire["Armed Canary Targets (~/.ethereum, ~/.config/solana)"]
         VaultBrowser --> IsolatedData["~/Library/Application Support/IronMacVault/"]
         Web3Tools --> DevEnv["Verified Toolchains (Foundry, Rust, LuLu)"]
     end

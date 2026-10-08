@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.2.0"
+VERSION="0.3.0"
 # Resolve real source directory even if called through symlinks (e.g. ~/.local/bin/ironmac)
 TARGET="${BASH_SOURCE[0]}"
 while [ -L "$TARGET" ]; do
@@ -43,6 +43,7 @@ show_help() {
     echo "  harden         Apply recommended security baselines and network stealth"
     echo "  vault-browser  Create an isolated, dedicated Web3 wallet browser profile"
     echo "  console        Launch a zero-trace, ephemeral RAM-backed secure terminal"
+    echo "  trap           Anti-AMOS honeypot decoys & tripwire sentry [start|stop|status|test]"
     echo "  tools          Interactive installer for curated Web3 tools (Foundry, LuLu, etc.)"
     echo "  all            Run the complete guided setup wizard"
     echo "  version        Print IronMac version"
@@ -57,21 +58,25 @@ interactive_menu() {
     echo "  2) 🔒 Apply System Hardening Baseline"
     echo "  3) 🌐 Create Isolated Vault Browser Profile"
     echo "  4) 💻 Launch Secure Vault Console (Zero-History & RAM-backed)"
-    echo "  5) 📦 Install Curated Web3 Tools & Utilities"
-    echo "  6) 🛡️ Run Complete Setup Wizard (All of the above)"
+    echo "  5) 🪤 Anti-AMOS Honeypot Trap (Deploy Decoys & Tripwire Sentry)"
+    echo "  6) 📦 Install Curated Web3 Tools & Utilities"
+    echo "  7) 🛡️ Run Complete Setup Wizard (All of the above)"
     echo "  0) Exit"
     echo ""
-    read -rp "Enter choice [1-6, 0]: " choice
+    read -rp "Enter choice [1-7, 0]: " choice
     case "${choice}" in
         1) bash "${SOURCE_DIR}/modules/audit.sh" ;;
         2) bash "${SOURCE_DIR}/modules/harden.sh" ;;
         3) bash "${SOURCE_DIR}/modules/vault_browser.sh" ;;
         4) bash "${SOURCE_DIR}/modules/console.sh" ;;
-        5) bash "${SOURCE_DIR}/modules/web3_tools.sh" ;;
-        6)
+        5) bash "${SOURCE_DIR}/modules/trap.sh" start ;;
+        6) bash "${SOURCE_DIR}/modules/web3_tools.sh" ;;
+        7)
            bash "${SOURCE_DIR}/modules/audit.sh"
            bash "${SOURCE_DIR}/modules/harden.sh"
            bash "${SOURCE_DIR}/modules/vault_browser.sh"
+           bash "${SOURCE_DIR}/modules/console.sh"
+           bash "${SOURCE_DIR}/modules/trap.sh" start
            bash "${SOURCE_DIR}/modules/web3_tools.sh"
            ;;
         0|*) echo "Exiting. Stay safe in Web3!"; exit 0 ;;
@@ -92,6 +97,9 @@ case "${CMD}" in
         ;;
     console)
         bash "${SOURCE_DIR}/modules/console.sh"
+        ;;
+    trap)
+        bash "${SOURCE_DIR}/modules/trap.sh" "${2:-status}"
         ;;
     tools)
         bash "${SOURCE_DIR}/modules/web3_tools.sh"
