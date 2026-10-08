@@ -75,7 +75,7 @@ setopt NO_INC_APPEND_HISTORY
 setopt NO_APPEND_HISTORY
 
 # 2. Load developer tools from standard paths if available
-for p in /opt/homebrew/bin /usr/local/bin "$HOME/.cargo/bin" "$HOME/.foundry/bin" "$HOME/.starkli/bin"; do
+for p in /opt/homebrew/bin /usr/local/bin "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.foundry/bin" "$HOME/.starkli/bin"; do
     if [[ -d "$p" && ":$PATH:" != *":$p:"* ]]; then
         export PATH="$p:$PATH"
     fi
@@ -87,6 +87,50 @@ PROMPT='%F{yellow}[🔒 IRON-CONSOLE]%f %F{cyan}%1~%f ❯ '
 alias clear="clear && echo -e '\033[33m[🔒 IRON-CONSOLE: History OFF | RAM-backed Workspace active]\033[0m'"
 alias evm-wallet="cast wallet"
 alias starknet-wallet="starkli"
+alias vault-browser="ironmac vault-browser"
+alias clip-guard="ironmac clip-guard"
+alias trap="ironmac trap"
+alias panic="ironmac panic"
+
+unalias help 2>/dev/null || true
+
+help() {
+    echo -e "\033[1;36m==========================================================\033[0m"
+    echo -e "\033[1;36m          🛡️  IronMac Secure Console User Guide          \033[0m"
+    echo -e "\033[1;36m==========================================================\033[0m"
+    echo -e "Zero-Trace Ephemeral RAM Environment for Web3 Operations\n"
+
+    echo -e "\033[1;33m[1] Core Security Guarantees:\033[0m"
+    echo -e "  • \033[1;32mZero Disk History\033[0m : HISTFILE=/dev/null (No command is ever saved to ~/.zsh_history)"
+    echo -e "  • \033[1;32mRAM-Backed Disk\033[0m   : This workspace is in volatile memory (/Volumes/IronVault_*)"
+    echo -e "  • \033[1;32mSelf-Purging\033[0m      : Exiting terminates the session and securely ejects the RAM disk\n"
+
+    echo -e "\033[1;33m[2] Web3 Key & Wallet Operations in RAM:\033[0m"
+    echo -e "  • \033[1;37mcast wallet new\033[0m                      Generate fresh EVM address + mnemonic in RAM"
+    echo -e "  • \033[1;37mcast wallet import <name> -i\033[0m         Safely import private key into RAM keystore"
+    echo -e "  • \033[1;37mcast wallet vanity --starts-with 00\033[0m  Mine custom address offline with zero disk I/O"
+    echo -e "  • \033[1;37mstarkli signer create ./signer.json\033[0m  Generate encrypted Starknet signer in RAM"
+    echo -e "  • \033[1;37mstarkli account oz init ./acc.json\033[0m   Initialize OpenZeppelin smart account\n"
+
+    echo -e "\033[1;33m[3] Built-in Shortcuts & Security Commands:\033[0m"
+    echo -e "  • \033[1;36mhelp\033[0m / \033[1;36miron-help\033[0m                   Display this interactive guide"
+    echo -e "  • \033[1;36mvault-browser\033[0m                       Launch isolated Web3 browser profile"
+    echo -e "  • \033[1;36mclip-guard [status|clear|test]\033[0m      Clipboard address-swap guard & auto-wipe"
+    echo -e "  • \033[1;36mtrap [status|test]\033[0m                  Anti-AMOS honeypot decoys & tripwire sentry"
+    echo -e "  • \033[1;36mpanic\033[0m                               Emergency hardware air-gap kill switch"
+    echo -e "  • \033[1;36minstall-evm-wallet\033[0m                  One-click install Foundry (cast, forge)"
+    echo -e "  • \033[1;36minstall-starknet-wallet\033[0m             One-click install Starkli toolchain\n"
+
+    echo -e "\033[1;33m[4] Cold Storage & Exit Rules:\033[0m"
+    echo -e "  ⚠️  \033[1;31mWARNING:\033[0m When you type \033[1m'exit'\033[0m, all files in this workspace vanish forever."
+    echo -e "  • To persist a key generated here, write the mnemonic on paper/steel plate."
+    echo -e "  • Never paste raw private keys into external chat apps or browsers."
+    echo -e "\nType \033[1m'exit'\033[0m or press \033[1mCtrl+D\033[0m to terminate session and destroy RAM disk."
+    echo -e "\033[1;36m==========================================================\033[0m"
+}
+
+alias iron-help=help
+alias '?'=help
 
 install-evm-wallet() {
     echo "Installing Foundry (cast wallet)..."
@@ -117,7 +161,7 @@ echo -e "${GREEN}[✓] Clean-room environment initialized${RESET}"
 # Check EVM & Starknet tooling
 echo ""
 echo -e "${CYAN}${BOLD}🪙 Built-in Open-Source CLI Wallets:${RESET}"
-for p in /opt/homebrew/bin /usr/local/bin "$HOME/.cargo/bin" "$HOME/.foundry/bin" "$HOME/.starkli/bin"; do
+for p in /opt/homebrew/bin /usr/local/bin "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.foundry/bin" "$HOME/.starkli/bin"; do
     if [[ -d "$p" && ":$PATH:" != *":$p:"* ]]; then
         export PATH="$p:$PATH"
     fi
@@ -145,7 +189,7 @@ echo "   - Commands typed here will NEVER be saved to ~/.zsh_history."
 echo "   - Any keys/files created in this workspace disappear completely upon 'exit'."
 echo "   - To persist a key generated here, explicitly export it to cold storage before exiting."
 echo ""
-echo -e "Type ${BOLD}'exit'${RESET} or press ${BOLD}Ctrl+D${RESET} when finished."
+echo -e "Type ${BOLD}${CYAN}'help'${RESET} to view console guide & workflows, or ${BOLD}'exit'${RESET} when finished."
 echo "----------------------------------------------------------"
 
 # 3. Launch isolated subshell inside RAM workspace

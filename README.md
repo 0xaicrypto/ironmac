@@ -86,14 +86,17 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
   # 1. Spawn a zero-trace memory workspace
   ironmac console
 
-  # 2. Inside the secure console, generate an ephemeral EVM burner wallet
+  # 2. Inside the secure console, view built-in commands & guide anytime:
+  help   # (or 'iron-help')
+
+  # 3. Generate an ephemeral EVM burner wallet directly in RAM
   cast wallet new
   # -> Outputs Address, Private Key, Mnemonic directly in RAM
 
-  # 3. Or generate a Starknet signer keystore inside the RAM disk
+  # 4. Or generate a Starknet signer keystore inside the RAM disk
   starkli signer create ./signer.json
 
-  # 4. Perform your testnet claims or transfers, then simply exit:
+  # 5. Perform your testnet claims or transfers, then simply exit:
   exit
   # -> Ephemeral RAM Disk is ejected & erased.
   # -> Zero private keys or commands ever touched your SSD or ~/.zsh_history.
