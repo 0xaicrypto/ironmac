@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+# Capture host directory prior to entering RAM disk
+ORIGINAL_CWD="${PWD}"
+export ORIGINAL_CWD
+
 # ANSI 256-color & style definitions
 BOLD="\033[1m"
 GREEN="\033[38;5;82m"
@@ -56,6 +60,8 @@ else
     echo -e "${GRAY}│${RESET}  ${BOLD}WORKSPACE${RESET} : ${YELLOW}${MOUNT_POINT} (Temp Memory Fallback)${RESET}"
 fi
 
+export MOUNT_POINT
+
 echo -e "${GRAY}│${RESET}  ${BOLD}INTEGRITY${RESET} : ${YELLOW}[●] HISTFILE → /dev/null${RESET}  ${GREEN}[●] ZERO-SSD-PERSISTENCE${RESET}"
 
 # Check PATH & tools
@@ -90,14 +96,39 @@ if [[ -f /etc/zshrc ]]; then
     source /etc/zshrc
 fi
 
-# 1. Force zero history recording
+# 1. Zero Disk Persistence + In-Memory Recall
 unset HISTFILE
 export HISTFILE=/dev/null
-export HISTSIZE=0
+export HISTSIZE=1000
 export SAVEHIST=0
 setopt NO_SHARE_HISTORY
 setopt NO_INC_APPEND_HISTORY
 setopt NO_APPEND_HISTORY
+
+# Filter out sensitive keys/secrets from in-memory history buffer
+zshaddhistory() {
+    local cmd="${1%%$'\n'}"
+    # Block 64-hex strings (raw private keys)
+    if [[ "$cmd" =~ ([0-9a-fA-F]{64}) ]]; then
+        return 1
+    fi
+    # Block private key / seed environment assignments
+    if [[ "$cmd" =~ (PRIVATE_KEY|MNEMONIC|SECRET|API_KEY)= ]]; then
+        return 1
+    fi
+    return 0
+}
+
+# Fast prefix history navigation (type 'cast' + Up arrow to recall only cast commands)
+bindkey -e
+bindkey '^[[A' up-line-or-search
+bindkey '^[[B' down-line-or-search
+
+# Fast ephemeral Tab completion
+autoload -Uz compinit
+compinit -d "${ZDOT_DIR}/.zcompdump"
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
 
 # 2. Load developer tools from standard paths if available
 for p in /opt/homebrew/bin /usr/local/bin "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.foundry/bin" "$HOME/.starkli/bin"; do
@@ -109,8 +140,10 @@ done
 # 3. Two-Line Hacker Cyberpunk Prompt
 PROMPT="%F{242}╭─%f%F{82}[%f%F{51}⚡ IRON-VAULT%f%F{82}]%f%F{242}─%f%F{214}[HIST:OFF]%f%F{242}─%f%F{141}[%1~]%f"$'\n'"%F{242}╰─%f%(?.%F{51}❯%f.%F{196}❯%f) "
 
-# 4. Built-in Security Aliases
+# 4. Built-in Security & Productivity Aliases
 alias clear="clear && echo -e '\033[38;5;242m╭─\033[0m\033[1;38;5;51m[⚡ IRON-VAULT // VOLATILE MEMORY ACTIVE // ZERO-TRACE]\033[0m\033[38;5;242m─\033[0m\033[38;5;214m[HIST:OFF]\033[0m\033[38;5;242m─\033[0m\033[38;5;82m[● AIR-GAP READY]\033[0m'"
+alias ls="ls -G"
+alias ll="ls -laGh"
 alias evm-wallet="cast wallet"
 alias starknet-wallet="starkli"
 alias vault-browser="ironmac vault-browser"
@@ -122,6 +155,127 @@ alias '?'=help
 alias status=hud
 alias key-guide=key_guide
 alias wallet-guide=key_guide
+alias vopen=finder
+
+# 5. Dual-Space Navigation
+vault() {
+    cd "${MOUNT_POINT}"
+    echo -e "\033[38;5;82m✓ Returned to RAM Vault workspace:\033[0m ${PWD}"
+}
+
+host() {
+    cd "${ORIGINAL_CWD:-$HOME}"
+    echo -e "\033[38;5;214m✓ Navigated to host filesystem:\033[0m ${PWD}"
+}
+
+finder() {
+    open . 2>/dev/null && echo -e "\033[38;5;51m✓ Opened current directory in macOS Finder\033[0m"
+}
+
+# 6. Hardware Air-Gap Switch
+airgap() {
+    local action="${1:-toggle}"
+    local dev="en0"
+    local current
+    current=$(networksetup -getairportpower "$dev" 2>/dev/null | awk '{print $4}')
+    case "$action" in
+        on|enable|1)
+            networksetup -setairportpower "$dev" off 2>/dev/null || true
+            echo -e "\033[38;5;82m⚡ [AIR-GAP ACTIVE]\033[0m Wi-Fi ($dev) powered OFF. System is physically isolated."
+            ;;
+        off|disable|0)
+            networksetup -setairportpower "$dev" on 2>/dev/null || true
+            echo -e "\033[38;5;214m📶 [AIR-GAP RELEASED]\033[0m Wi-Fi ($dev) powered ON."
+            ;;
+        status)
+            if [[ "$current" == "On" ]]; then
+                echo -e "\033[38;5;214m● Wi-Fi Online (Not air-gapped)\033[0m - Type 'airgap on' to isolate."
+            else
+                echo -e "\033[38;5;82m● Air-Gapped (Wi-Fi Off)\033[0m - System is physically isolated."
+            fi
+            ;;
+        toggle|*)
+            if [[ "$current" == "On" ]]; then
+                networksetup -setairportpower "$dev" off 2>/dev/null || true
+                echo -e "\033[38;5;82m⚡ [AIR-GAP ACTIVE]\033[0m Wi-Fi powered OFF. System is physically isolated."
+            else
+                networksetup -setairportpower "$dev" on 2>/dev/null || true
+                echo -e "\033[38;5;214m📶 [AIR-GAP RELEASED]\033[0m Wi-Fi powered ON."
+            fi
+            ;;
+    esac
+}
+
+# 7. Web3 Multi-Chain RPC Hub
+rpc() {
+    local chain="${1:-status}"
+    case "$chain" in
+        eth|mainnet|ethereum)
+            export ETH_RPC_URL="https://eth.llamarpc.com"
+            echo -e "\033[38;5;82m✓ ETH_RPC_URL set to Ethereum Mainnet:\033[0m $ETH_RPC_URL"
+            ;;
+        sepolia)
+            export ETH_RPC_URL="https://rpc.sepolia.org"
+            echo -e "\033[38;5;82m✓ ETH_RPC_URL set to Sepolia Testnet:\033[0m $ETH_RPC_URL"
+            ;;
+        base)
+            export ETH_RPC_URL="https://mainnet.base.org"
+            echo -e "\033[38;5;82m✓ ETH_RPC_URL set to Base Mainnet:\033[0m $ETH_RPC_URL"
+            ;;
+        arb|arbitrum)
+            export ETH_RPC_URL="https://arb1.arbitrum.io/rpc"
+            echo -e "\033[38;5;82m✓ ETH_RPC_URL set to Arbitrum One:\033[0m $ETH_RPC_URL"
+            ;;
+        op|optimism)
+            export ETH_RPC_URL="https://mainnet.optimism.io"
+            echo -e "\033[38;5;82m✓ ETH_RPC_URL set to Optimism:\033[0m $ETH_RPC_URL"
+            ;;
+        polygon|matic)
+            export ETH_RPC_URL="https://polygon-rpc.com"
+            echo -e "\033[38;5;82m✓ ETH_RPC_URL set to Polygon PoS:\033[0m $ETH_RPC_URL"
+            ;;
+        bsc|binance)
+            export ETH_RPC_URL="https://binance.llamarpc.com"
+            echo -e "\033[38;5;82m✓ ETH_RPC_URL set to BNB Smart Chain:\033[0m $ETH_RPC_URL"
+            ;;
+        solana|sol)
+            export SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
+            echo -e "\033[38;5;82m✓ SOLANA_RPC_URL set to Solana Mainnet:\033[0m $SOLANA_RPC_URL"
+            ;;
+        clear|unset)
+            unset ETH_RPC_URL SOLANA_RPC_URL
+            echo -e "\033[38;5;214m✓ RPC endpoints cleared from memory.\033[0m"
+            ;;
+        status|*)
+            if [[ -n "${ETH_RPC_URL:-}" || -n "${SOLANA_RPC_URL:-}" ]]; then
+                echo -e "\033[1mCurrent Session RPC Endpoints:\033[0m"
+                [[ -n "${ETH_RPC_URL:-}" ]] && echo -e "  • ETH_RPC_URL: \033[38;5;82m$ETH_RPC_URL\033[0m"
+                [[ -n "${SOLANA_RPC_URL:-}" ]] && echo -e "  • SOLANA_RPC_URL: \033[38;5;82m$SOLANA_RPC_URL\033[0m"
+            else
+                echo -e "\033[38;5;242mNo RPC endpoint set in current session.\033[0m"
+                echo -e "Usage: rpc [eth|sepolia|base|arb|op|polygon|bsc|solana|clear]"
+            fi
+            ;;
+    esac
+}
+
+balance() {
+    if [[ $# -eq 0 ]]; then
+        echo -e "Usage: balance <address> [optional_rpc_url]"
+        return 1
+    fi
+    if command -v cast >/dev/null 2>&1; then
+        cast balance "$1" ${2:+--rpc-url "$2"} --ether 2>/dev/null && return 0
+    fi
+    echo -e "\033[38;5;214mTip:\033[0m Set RPC endpoint first: \033[1mrpc eth\033[0m (or rpc base, rpc sepolia)"
+}
+
+block() {
+    if command -v cast >/dev/null 2>&1; then
+        cast block-number ${1:+--rpc-url "$1"} 2>/dev/null && return 0
+    fi
+    echo -e "\033[38;5;214mTip:\033[0m Set RPC endpoint first: \033[1mrpc eth\033[0m"
+}
 
 unalias help 2>/dev/null || true
 
@@ -142,6 +296,14 @@ help() {
     echo -e "\033[38;5;242m│\033[0m    • \033[1mshred <file>\033[0m                       DoD 3-pass cryptographic wipe    \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[1mkeccak <string>\033[0m                    Offline Keccak-256 hash & sigs   \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[1mwei2eth <wei> / eth2wei <eth>\033[0m      Offline safe decimal conversion  \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;214m◈ PRODUCTIVITY & HARDWARE CONTROLS\033[0m                                    \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mairgap [on|off|status]\033[0m             Instant Wi-Fi hardware killswitch\033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mrpc [eth|base|sepolia|arb|...]\033[0m     Set zero-config chain RPC in RAM \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mbalance <addr> / block\033[0m             Instant balance & block lookup   \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mvault / host / finder\033[0m              Switch between RAM disk & host   \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51m↑ / ↓ Arrow Keys\033[0m                   In-memory prefix history search  \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mTab\033[0m                                Ephemeral autocompletion menu    \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;214m◈ DEFENSIVE TELEMETRY & CONTROLS\033[0m                                      \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mhud / status\033[0m                       Display live tactical telemetry  \033[38;5;242m│\033[0m"
@@ -226,10 +388,10 @@ hud() {
     echo -e "\033[38;5;242m┌──\033[0m\033[1;38;5;51m[ ⚡ IRON-VAULT TELEMETRY HUD ]\033[0m\033[38;5;242m────────────────────────────────────────┐\033[0m"
     echo -e "\033[38;5;242m│\033[0m  \033[1mMOUNT\033[0m       : \033[38;5;82m$mnt\033[0m"
     echo -e "\033[38;5;242m│\033[0m  \033[1mDISK USAGE\033[0m  : \033[38;5;214m$(df -h "$mnt" 2>/dev/null | awk 'NR==2 {print $3 "/" $2 " (" $5 " used)"}')\033[0m"
-    echo -e "\033[38;5;242m│\033[0m  \033[1mHISTORY\033[0m     : \033[38;5;82mHISTFILE=/dev/null (Zero Persistence)\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1mHISTORY\033[0m     : \033[38;5;82mIn-Memory Scrubbing (Zero Disk Persistence)\033[0m"
     echo -e "\033[38;5;242m│\033[0m  \033[1mCLIP-GUARD\033[0m  : $(pgrep -f "clip_guard.py" >/dev/null && echo -e "\033[38;5;82m● ACTIVE\033[0m" || echo -e "\033[38;5;242m○ INACTIVE\033[0m")"
     echo -e "\033[38;5;242m│\033[0m  \033[1mHONEYPOT\033[0m    : $(pgrep -f "trap_sentry.py" >/dev/null && echo -e "\033[38;5;82m● ARMED\033[0m" || echo -e "\033[38;5;242m○ DISARMED\033[0m")"
-    echo -e "\033[38;5;242m│\033[0m  \033[1mNETWORK\033[0m     : $(networksetup -getairportpower en0 2>/dev/null | grep -q "On" && echo -e "\033[38;5;214mWi-Fi Online\033[0m" || echo -e "\033[38;5;82mAir-Gapped (Wi-Fi Off)\033[0m")"
+    echo -e "\033[38;5;242m│\033[0m  \033[1mNETWORK\033[0m     : $(networksetup -getairportpower en0 2>/dev/null | grep -q "On" && echo -e "\033[38;5;214mWi-Fi Online (Type 'airgap on' to isolate)\033[0m" || echo -e "\033[38;5;82mAir-Gapped (Wi-Fi Off)\033[0m")"
     echo -e "\033[38;5;242m└──\033[0m\033[1;38;5;242m[ ALL RECONNAISSANCE PASSIVE // ZERO TELEMETRY ]\033[0m\033[38;5;242m───────┘\033[0m"
 }
 

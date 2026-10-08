@@ -129,18 +129,24 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 * **The Risk:** Signing multi-sig transactions or large transfers on an unhardened, internet-connected machine exposes your keys to memory-scraping malware or clipboard address substitution.
 * **The IronMac Way:**
   ```bash
-  # 1. Turn off Wi-Fi on your MacBook
-  # 2. Launch the zero-trace console
+  # 1. Launch the zero-trace console
   ironmac console
+
+  # 2. Cut Wi-Fi instantly using the built-in air-gap switch
+  airgap on
+  # -> Wi-Fi (en0) powered off. System physically isolated.
 
   # 3. Sign transaction data completely offline
   cast wallet sign --data "0x8f3c..." --interactive
   # -> Generates raw cryptographic signature hex string in RAM
 
-  # 4. Exit to destroy private key session from memory
-  exit
+  # 4. Restore Wi-Fi and set RPC to broadcast
+  airgap off
+  rpc eth
+  cast publish <signed_tx_hex>
 
-  # 5. Reconnect Wi-Fi and broadcast the raw signed hex via public RPC
+  # 5. Exit to destroy private key session from memory
+  exit
   ```
 
 ### 4. ☕ Public Wi-Fi & Crypto Conference Defense
