@@ -120,6 +120,8 @@ alias panic="ironmac panic"
 alias iron-help=help
 alias '?'=help
 alias status=hud
+alias key-guide=key_guide
+alias wallet-guide=key_guide
 
 unalias help 2>/dev/null || true
 
@@ -136,6 +138,7 @@ help() {
     echo -e "\033[38;5;242m│\033[0m    • \033[1mcast wallet import <name> -i\033[0m       Import private key into RAM      \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[1mcast wallet vanity --starts-with 00\033[0m Offline vanity address generator\033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[1mstarkli signer create ./key.json\033[0m   Generate encrypted Starknet key  \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[1;38;5;214mkey-guide / wallet-guide\033[0m           Private key custody & safety guide\033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[1mshred <file>\033[0m                       DoD 3-pass cryptographic wipe    \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[1mkeccak <string>\033[0m                    Offline Keccak-256 hash & sigs   \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[1mwei2eth <wei> / eth2wei <eth>\033[0m      Offline safe decimal conversion  \033[38;5;242m│\033[0m"
@@ -151,6 +154,71 @@ help() {
     echo -e "\033[38;5;242m│\033[0m    Type \033[1m'exit'\033[0m or press \033[1mCtrl+D\033[0m. All keys and memory artifacts will be     \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    permanently destroyed. Save mnemonics to cold storage first!        \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m└──\033[0m\033[1;38;5;242m[ SECURE CLEAN-ROOM READY // TYPE COMMANDS BELOW ]\033[0m\033[38;5;242m───────────────────┘\033[0m"
+}
+
+key_guide() {
+    echo -e "\033[38;5;242m┌──\033[0m\033[1;38;5;51m[ 🔑 IRONMAC PRIVATE KEY CUSTODY & MANAGEMENT PROTOCOL ]\033[0m\033[38;5;242m─────────────┐\033[0m"
+    echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;214m[PATH 1] PHYSICAL COLD STORAGE (Large Assets / Treasury / Mainnet)\033[0m     \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    1. Transcribe 12 mnemonic words onto paper or stamped steel plates.  \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    2. Verify public address matches before transferring funds.          \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    3. Run \033[1m'clear'\033[0m immediately to purge terminal screen buffer.          \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;214m[PATH 2] ENCRYPTED FOUNDRY KEYSTORE (CLI Scripts & Contract Deploy)\033[0m    \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • Encrypt raw private key into AES-128-CTR JSON keystore:            \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m      \033[38;5;51m❯ cast wallet import <account_name> --interactive\033[0m                  \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • Deploy contracts without ever exposing private key in terminal:    \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m      \033[38;5;82m❯ forge script ... --account <account_name> --broadcast\033[0m            \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[1;38;5;196mCRITICAL:\033[0m Never write keys to .env! (Top AMOS malware target)     \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;214m[PATH 3] ISOLATED DEFI BROWSER (MetaMask / Rabby / DApps)\033[0m              \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    1. Launch isolated profile: \033[38;5;51mvault-browser\033[0m                            \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    2. Select 'Import with Secret Phrase' in MetaMask/Rabby.             \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    3. Stored in isolated directory; separated from daily browsing.      \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;214m[PATH 4] EPHEMERAL BURNER WALLET (Airdrop Claims / Testing)\033[0m             \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    1. Interact directly in RAM disk workspace.                          \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    2. Drain residual funds to cold wallet.                              \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    3. Type \033[1m'exit'\033[0m. RAM disk is wiped; zero private key trace remains.   \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;196m⛔ THE CARDINAL SINS (INSTANT ASSET DRAIN VECTORS)\033[0m                     \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    ❌ Apple Notes / Notion / Obsidian (Syncs plaintext to cloud)        \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    ❌ WeChat File Transfer / Telegram Saved Messages (Honeypot for logs)\033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    ❌ Screenshots / Photo Library (AMOS & malware OCR photo scans)      \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    ❌ Plaintext .env in git repos (Auto-indexed by scanners & scrapers) \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m└──\033[0m\033[1;38;5;242m[ STAY PARANOID // WEB3 ASSETS ARE IRREVERSIBLE ]\033[0m\033[38;5;242m─────────────────────┘\033[0m"
+}
+
+cast() {
+    command cast "$@"
+    local ret=$?
+    if [[ $ret -eq 0 && "$*" =~ (wallet[[:space:]]+new) ]]; then
+        echo ""
+        echo -e "\033[38;5;242m┌──\033[0m\033[1;38;5;214m[ ⚠️  CRITICAL: HOW TO MANAGE THIS NEW PRIVATE KEY ]\033[0m\033[38;5;242m─────────────┐\033[0m"
+        echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;82m[1] Cold Storage\033[0m      : Write mnemonic to paper/steel -> run \033[1m'clear'\033[0m.     \033[38;5;242m│\033[0m"
+        echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;82m[2] CLI Dev Keystore\033[0m  : \033[38;5;51mcast wallet import <name> --interactive\033[0m (Never in .env!)  \033[38;5;242m│\033[0m"
+        echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;82m[3] Web3 Browser\033[0m      : Type \033[38;5;51m'vault-browser'\033[0m -> Import into isolated MetaMask. \033[38;5;242m│\033[0m"
+        echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;82m[4] Burner / Testnet\033[0m  : Use in RAM now. Everything disappears on \033[1m'exit'\033[0m.   \033[38;5;242m│\033[0m"
+        echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
+        echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;196m❌ NEVER SAVE IN:\033[0m Apple Notes, WeChat, Telegram, Screenshots, or .env! \033[38;5;242m│\033[0m"
+        echo -e "\033[38;5;242m└──\033[0m\033[1;38;5;242m[ RUN 'key-guide' FOR COMPLETE OPERATIONAL PLAYBOOK ]\033[0m\033[38;5;242m────────────────┘\033[0m"
+        echo ""
+    fi
+    return $ret
+}
+
+starkli() {
+    command starkli "$@"
+    local ret=$?
+    if [[ $ret -eq 0 && "$*" =~ (signer[[:space:]]+create) ]]; then
+        echo ""
+        echo -e "\033[38;5;242m┌──\033[0m\033[1;38;5;214m[ ⚠️  STARKNET SIGNER SAVED IN RAM ]\033[0m\033[38;5;242m───────────────────────────────┐\033[0m"
+        echo -e "\033[38;5;242m│\033[0m  Signer JSON is stored inside volatile RAM disk.                       \033[38;5;242m│\033[0m"
+        echo -e "\033[38;5;242m│\033[0m  To persist, move to cold storage or encrypted keystore before 'exit'. \033[38;5;242m│\033[0m"
+        echo -e "\033[38;5;242m└──\033[0m\033[1;38;5;242m[ RUN 'key-guide' FOR COMPLETE OPERATIONAL PLAYBOOK ]\033[0m\033[38;5;242m────────────────┘\033[0m"
+        echo ""
+    fi
+    return $ret
 }
 
 hud() {

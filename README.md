@@ -93,11 +93,15 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
   # 3. Generate an ephemeral EVM burner wallet directly in RAM
   cast wallet new
   # -> Outputs Address, Private Key, Mnemonic directly in RAM
+  # -> Automatically displays tactical Key Custody Protocol & safety rules!
 
-  # 4. Or generate a Starknet signer keystore inside the RAM disk
+  # 4. Or review the comprehensive custody playbook anytime:
+  key-guide
+
+  # 5. Or generate a Starknet signer keystore inside the RAM disk
   starkli signer create ./signer.json
 
-  # 5. Perform your testnet claims or transfers, then simply exit:
+  # 6. Perform your testnet claims or transfers, then simply exit:
   exit
   # -> Ephemeral RAM Disk is ejected & erased.
   # -> Zero private keys or commands ever touched your SSD or ~/.zsh_history.
