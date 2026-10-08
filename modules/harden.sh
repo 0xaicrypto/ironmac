@@ -18,7 +18,21 @@ echo "This will configure security settings on your Mac."
 echo "Note: Administrative privileges (sudo) may be required for system settings."
 echo ""
 
-read -rp "Proceed with baseline hardening? [y/N]: " confirm
+FORCE_YES="${1:-}"
+
+if [[ "${FORCE_YES}" == "-y" || "${FORCE_YES}" == "--yes" ]]; then
+    confirm="y"
+else
+    if [[ -t 0 ]]; then
+        read -rp "Proceed with baseline hardening? [y/N]: " confirm
+    elif [[ -c /dev/tty ]]; then
+        read -rp "Proceed with baseline hardening? [y/N]: " confirm </dev/tty
+    else
+        echo "Non-interactive environment detected. Use 'ironmac harden -y' to force apply."
+        exit 0
+    fi
+fi
+
 if [[ ! "${confirm}" =~ ^[Yy]$ ]]; then
     echo "Hardening skipped."
     exit 0
