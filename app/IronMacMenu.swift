@@ -1,10 +1,34 @@
 import AppKit
 import Foundation
 
-class IronMacMenuDelegate: NSObject, NSApplicationDelegate {
+class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem!
     let menu = NSMenu()
-    let wifiDevice = "en0"
+
+    // Dynamically detect Wi-Fi interface
+    var wifiDevice: String {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
+        process.arguments = ["-listallhardwareports"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        try? process.run()
+        process.waitUntilExit()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: data, encoding: .utf8) ?? ""
+        let lines = output.components(separatedBy: "\n")
+        for (i, line) in lines.enumerated() {
+            if line.contains("Wi-Fi") || line.contains("AirPort") {
+                if i + 1 < lines.count {
+                    let next = lines[i + 1]
+                    if let dev = next.components(separatedBy: ": ").last?.trimmingCharacters(in: .whitespaces) {
+                        return dev
+                    }
+                }
+            }
+        }
+        return "en0"
+    }
 
     // Resolve ironmac binary location
     var ironmacBin: String {
@@ -13,6 +37,7 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate {
             "\(home)/.local/bin/ironmac",
             "/opt/homebrew/bin/ironmac",
             "/usr/local/bin/ironmac",
+            "\(home)/.ironmac/bin/ironmac",
             Bundle.main.bundlePath + "/Contents/MacOS/ironmac"
         ]
         for candidate in candidates {
@@ -29,20 +54,47 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate {
             button.title = "🛡️"
             button.toolTip = "IronMac Web3 Fortress Workstation"
         }
+        menu.delegate = self
+        statusItem.menu = menu
         buildMenu()
 
         // Background timer to refresh telemetry every 5 seconds
         Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             DispatchQueue.main.async {
-                self?.buildMenu()
+                self?.refreshStatus()
+            }
+        }
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        buildMenu()
+    }
+
+    func refreshStatus() {
+        let airgapped = isAirgapActive()
+        let trapRunning = isProcessRunning("trap_sentry.py")
+        let clipRunning = isProcessRunning("clip_guard.py")
+        let allArmed = trapRunning && clipRunning
+
+        if let button = statusItem?.button {
+            if airgapped {
+                button.title = "🛡️⚡"
+                button.toolTip = "IronMac: Hardware Air-Gap ACTIVE (Wi-Fi OFF)"
+            } else if allArmed {
+                button.title = "🛡️"
+                button.toolTip = "IronMac: Defenses ARMED"
+            } else {
+                button.title = "🛡️"
+                button.toolTip = "IronMac: Defenses PARTIAL"
             }
         }
     }
 
     func isAirgapActive() -> Bool {
+        let dev = wifiDevice
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
-        process.arguments = ["-getairportpower", wifiDevice]
+        process.arguments = ["-getairportpower", dev]
         let pipe = Pipe()
         process.standardOutput = pipe
         try? process.run()
@@ -65,17 +117,24 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate {
 
     @objc func toggleAirgap() {
         let currentlyAirgapped = isAirgapActive()
+        let dev = wifiDevice
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
-        process.arguments = ["-setairportpower", wifiDevice, currentlyAirgapped ? "on" : "off"]
+        process.arguments = ["-setairportpower", dev, currentlyAirgapped ? "on" : "off"]
         try? process.run()
         process.waitUntilExit()
+        refreshStatus()
         buildMenu()
     }
 
     @objc func openVaultConsole() {
         let bin = ironmacBin
-        let script = "tell application \"Terminal\" to do script \"\(bin) console\" activate"
+        let script = """
+        tell application "Terminal"
+            activate
+            do script "\(bin) console"
+        end tell
+        """
         if let appleScript = NSAppleScript(source: script) {
             var error: NSDictionary?
             appleScript.executeAndReturnError(&error)
@@ -103,20 +162,26 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: "TRIGGER PANIC NOW")
         alert.addButton(withTitle: "Cancel")
         
-        NSRunningApplication.current.activate()
+        NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertFirstButtonReturn {
             let bin = ironmacBin
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/bash")
             process.arguments = ["-c", "\(bin) panic trigger \"Triggered via MenuBar Companion App\""]
             try? process.run()
+            refreshStatus()
             buildMenu()
         }
     }
 
     @objc func runAudit() {
         let bin = ironmacBin
-        let script = "tell application \"Terminal\" to do script \"\(bin) audit\" activate"
+        let script = """
+        tell application "Terminal"
+            activate
+            do script "\(bin) audit"
+        end tell
+        """
         if let appleScript = NSAppleScript(source: script) {
             var error: NSDictionary?
             appleScript.executeAndReturnError(&error)
@@ -130,6 +195,7 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate {
         process.arguments = ["-c", "\(bin) trap start; \(bin) clip-guard start"]
         try? process.run()
         process.waitUntilExit()
+        refreshStatus()
         buildMenu()
     }
 
@@ -160,9 +226,9 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate {
         // 2. Status overview
         let allArmed = trapRunning && clipRunning
         let statusTitle = allArmed ? "● Active Defenses: ARMED" : "○ Active Defenses: PARTIAL"
-        let statusItem = NSMenuItem(title: statusTitle, action: nil, keyEquivalent: "")
-        statusItem.isEnabled = false
-        menu.addItem(statusItem)
+        let statusOverviewItem = NSMenuItem(title: statusTitle, action: nil, keyEquivalent: "")
+        statusOverviewItem.isEnabled = false
+        menu.addItem(statusOverviewItem)
 
         if !allArmed {
             let armItem = NSMenuItem(title: "  ↳ Click to Arm Trap & ClipGuard", action: #selector(startDefenses), keyEquivalent: "")
@@ -211,7 +277,7 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate {
         quitItem.target = self
         menu.addItem(quitItem)
 
-        statusItem.menu = menu
+        self.statusItem.menu = menu
     }
 }
 

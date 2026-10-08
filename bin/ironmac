@@ -134,23 +134,26 @@ case "${CMD}" in
         ;;
     app|menu)
         MENU_BIN="${SOURCE_DIR}/bin/ironmac-menu"
-        if [[ ! -x "$MENU_BIN" ]]; then
-            TARGET_BIN="$MENU_BIN"
-            if [[ ! -w "${SOURCE_DIR}/bin" ]]; then
-                TARGET_BIN="${HOME}/.ironmac/bin/ironmac-menu"
-                mkdir -p "${HOME}/.ironmac/bin"
-            fi
+        TARGET_BIN="$MENU_BIN"
+        if [[ ! -w "${SOURCE_DIR}/bin" ]]; then
+            TARGET_BIN="${HOME}/.ironmac/bin/ironmac-menu"
+            mkdir -p "${HOME}/.ironmac/bin"
+        fi
+
+        if [[ ! -x "$TARGET_BIN" || "${SOURCE_DIR}/app/IronMacMenu.swift" -nt "$TARGET_BIN" ]]; then
             echo "Compiling native Swift MenuBar companion..."
             swiftc -O "${SOURCE_DIR}/app/IronMacMenu.swift" -o "$TARGET_BIN"
             chmod +x "$TARGET_BIN"
-            MENU_BIN="$TARGET_BIN"
         fi
+        MENU_BIN="$TARGET_BIN"
+
         if pgrep -f "ironmac-menu" >/dev/null; then
-            echo -e "${GREEN}● IronMac MenuBar companion is already active.${RESET} Look for 🛡️ in your top menu bar."
-        else
-            nohup "$MENU_BIN" >/dev/null 2>&1 &
-            echo -e "${GREEN}✓ IronMac MenuBar Companion launched!${RESET} Look for 🛡️ in the top right menu bar."
+            pkill -f "ironmac-menu" 2>/dev/null || true
+            sleep 0.3
         fi
+
+        nohup "$MENU_BIN" >/dev/null 2>&1 &
+        echo -e "${GREEN}✓ IronMac MenuBar Companion launched!${RESET} Look for 🛡️ in the top right menu bar."
         ;;
     raycast)
         RAY_DIR="${SOURCE_DIR}/integrations/raycast"
