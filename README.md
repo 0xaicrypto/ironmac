@@ -71,6 +71,14 @@ MacBooks are the undisputed hardware of choice for Web3 founders, developers, an
   # -> Complete physical separation from daily web surfing and malicious downloads
   ```
 
+  > **❓ Will my wallet extensions (MetaMask, Rabby) stay saved?**  
+  > **Yes, absolutely.** Unlike the ephemeral Vault Console, the Vault Browser is **persistent**. All installed wallet extensions, custom RPCs, and encrypted keystores are securely stored in your dedicated `~/Library/Application Support/IronMacVault/Profile` directory. You do **NOT** need to re-import your seed phrase every time—simply launch `ironmac-vault-browser` and unlock your wallet with your password as usual.
+  >
+  > **Why is this safer than standard Chrome/Brave?**  
+  > 1. **Bypasses Hardcoded Malware Scans:** Infostealers (like AMOS) hardcode default search paths (`~/Library/Application Support/Google/Chrome/Default/...`). They do not inspect IronMac's custom vault directory.  
+  > 2. **Zero Extension Pollution:** Free from daily translation tools, downloaders, and unverified plugins that could leak session keys.  
+  > 3. **Clean-Room Surfing:** Only open verified DApps (Uniswap, Aave, Staking portals), strictly separate from social media surfing.
+
 ### 3. ❄️ Offline Cold Signing (Whales & Multi-Sig Signers)
 * **The Risk:** Signing multi-sig transactions or large transfers on an unhardened, internet-connected machine exposes your keys to memory-scraping malware or clipboard address substitution.
 * **The IronMac Way:**
@@ -99,6 +107,15 @@ MacBooks are the undisputed hardware of choice for Web3 founders, developers, an
   # 2. Apply stealth baseline (drops ICMP pings, blocks inbound scans, shuts remote ports)
   ironmac harden
   ```
+
+### ⚖️ Architectural Distinction: Vault Browser vs. Vault Console
+
+| Feature | 🌐 Vault Browser (`ironmac-vault-browser`) | 💻 Vault Console (`ironmac console`) |
+| :--- | :--- | :--- |
+| **Data Lifecycle** | **Persistent** (Saved in `~/Library/.../IronMacVault`) | **Ephemeral** (Pure RAM Disk, auto-wiped on exit) |
+| **Wallet Persistence** | **Yes** (MetaMask, Rabby & accounts stay configured) | **No** (Zero trace, keys & history vanish upon `exit`) |
+| **Primary Use Case** | Daily high-value DeFi trading & portfolio management | Burner airdrop claims, testnet testing & offline cold signing |
+| **Protection Focus** | Bypasses AMOS stealer paths, prevents extension pollution | Prevents `~/.zsh_history` plaintext key leaks & SSD residue |
 
 ---
 
