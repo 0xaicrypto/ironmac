@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.5.0"
+VERSION="0.5.1"
 # Resolve real source directory even if called through symlinks (e.g. ~/.local/bin/ironmac)
 TARGET="${BASH_SOURCE[0]}"
 while [ -L "$TARGET" ]; do
@@ -147,12 +147,13 @@ case "${CMD}" in
         fi
         MENU_BIN="$TARGET_BIN"
 
-        if pgrep -f "ironmac-menu" >/dev/null; then
-            pkill -f "ironmac-menu" 2>/dev/null || true
-            sleep 0.3
+        if pgrep -x "ironmac-menu" >/dev/null 2>&1; then
+            pkill -x "ironmac-menu" 2>/dev/null || true
+            sleep 0.5
         fi
 
         nohup "$MENU_BIN" >/dev/null 2>&1 &
+        disown $! 2>/dev/null || true
         echo -e "${GREEN}✓ IronMac MenuBar Companion launched!${RESET} Look for 🛡️ in the top right menu bar."
         ;;
     raycast)
