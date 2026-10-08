@@ -48,6 +48,8 @@ show_help() {
     echo "  panic          Emergency air-gap: instant Wi-Fi shutdown & threat isolation [trigger|restore]"
     echo "  tools          Interactive installer for curated Web3 tools (Foundry, LuLu, etc.)"
     echo "  mcp            Run Model Context Protocol (MCP) server for AI Agents (Cursor/Claude)"
+    echo "  app            Launch native macOS MenuBar companion HUD (shield in top bar)"
+    echo "  raycast        Install or inspect Raycast script command integrations"
     echo "  all            Run the complete guided setup wizard"
     echo "  version        Print IronMac version"
     echo "  help           Display this help message"
@@ -66,9 +68,11 @@ interactive_menu() {
     echo "  7) 🚨 Emergency Panic Air-Gap (Instant Wi-Fi Drop & Threat Isolation)"
     echo "  8) 📦 Install Curated Web3 Tools & Utilities"
     echo "  9) 🛡️ Run Complete Setup Wizard (All of the above)"
+    echo " 10) 🖥️ Launch macOS MenuBar Companion HUD"
+    echo " 11) ⚡ Show Raycast Script Command Integrations"
     echo "  0) Exit"
     echo ""
-    read -rp "Enter choice [1-9, 0]: " choice
+    read -rp "Enter choice [1-11, 0]: " choice
     case "${choice}" in
         1) bash "${SOURCE_DIR}/modules/audit.sh" ;;
         2) bash "${SOURCE_DIR}/modules/harden.sh" ;;
@@ -86,6 +90,12 @@ interactive_menu() {
            bash "${SOURCE_DIR}/modules/trap.sh" start
            bash "${SOURCE_DIR}/modules/clip_guard.sh" start
            bash "${SOURCE_DIR}/modules/web3_tools.sh"
+           ;;
+        10)
+           bash "${SOURCE_DIR}/bin/ironmac" app
+           ;;
+        11)
+           bash "${SOURCE_DIR}/bin/ironmac" raycast
            ;;
         0|*) echo "Exiting. Stay safe in Web3!"; exit 0 ;;
     esac
@@ -121,6 +131,44 @@ case "${CMD}" in
     mcp)
         shift || true
         exec node "${SOURCE_DIR}/mcp/dist/index.js" "$@"
+        ;;
+    app|menu)
+        MENU_BIN="${SOURCE_DIR}/bin/ironmac-menu"
+        if [[ ! -x "$MENU_BIN" ]]; then
+            TARGET_BIN="$MENU_BIN"
+            if [[ ! -w "${SOURCE_DIR}/bin" ]]; then
+                TARGET_BIN="${HOME}/.ironmac/bin/ironmac-menu"
+                mkdir -p "${HOME}/.ironmac/bin"
+            fi
+            echo "Compiling native Swift MenuBar companion..."
+            swiftc -O "${SOURCE_DIR}/app/IronMacMenu.swift" -o "$TARGET_BIN"
+            chmod +x "$TARGET_BIN"
+            MENU_BIN="$TARGET_BIN"
+        fi
+        if pgrep -f "ironmac-menu" >/dev/null; then
+            echo -e "${GREEN}● IronMac MenuBar companion is already active.${RESET} Look for 🛡️ in your top menu bar."
+        else
+            nohup "$MENU_BIN" >/dev/null 2>&1 &
+            echo -e "${GREEN}✓ IronMac MenuBar Companion launched!${RESET} Look for 🛡️ in the top right menu bar."
+        fi
+        ;;
+    raycast)
+        RAY_DIR="${SOURCE_DIR}/integrations/raycast"
+        echo -e "${CYAN}${BOLD}⚡ IronMac Raycast Script Commands:${RESET}"
+        echo -e "Directory: ${BOLD}${RAY_DIR}${RESET}"
+        echo ""
+        echo "Included Commands:"
+        echo "  • 🛡️ Defense HUD Telemetry   : integrations/raycast/ironmac-hud.sh"
+        echo "  • 📶 Toggle Hardware Air-Gap : integrations/raycast/ironmac-airgap.sh"
+        echo "  • 🔍 Verify Crypto Address   : integrations/raycast/ironmac-verify-address.sh"
+        echo "  • ⚡ Launch IronVault Console : integrations/raycast/ironmac-console.sh"
+        echo "  • 🚨 EMERGENCY PANIC KILL    : integrations/raycast/ironmac-panic.sh"
+        echo "  • 🔑 Scan Secrets in Path    : integrations/raycast/ironmac-scan-secrets.sh"
+        echo ""
+        echo "To add into Raycast:"
+        echo "  1. Open Raycast Preferences -> Extensions -> Script Commands"
+        echo "  2. Click 'Add Directories' and select: ${RAY_DIR}"
+        echo ""
         ;;
     all)
         bash "${SOURCE_DIR}/modules/audit.sh"

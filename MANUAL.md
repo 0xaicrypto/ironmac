@@ -9,6 +9,10 @@
 
 1. [关于 IronMac 与核心设计哲学](#1-关于-ironmac-与核心设计哲学)
 2. [环境准备与安装部署](#2-环境准备与安装部署)
+   - [2.1 系统要求](#21-系统要求)
+   - [2.2 方式一：Homebrew Tap 安装（macOS 推荐）](#22-方式一homebrew-tap-安装macos-推荐)
+   - [2.3 方式二：一键自动安装](#23-方式二一键自动安装)
+   - [2.4 方式三：手动克隆与本地编译](#24-方式三手动克隆与本地编译)
 3. [CLI 命令行工具完整解析](#3-cli-命令行工具完整解析)
    - [3.1 系统安全审计 (`ironmac audit`)](#31-系统安全审计-ironmac-audit)
    - [3.2 系统安全基线加固 (`ironmac harden`)](#32-系统安全基线加固-ironmac-harden)
@@ -20,6 +24,8 @@
    - [3.8 Web3 开发者工具链精选安装器 (`ironmac tools`)](#38-web3-开发者工具链精选安装器-ironmac-tools)
    - [3.9 AI Agent 原生 MCP 服务 (`ironmac mcp`)](#39-ai-agent-原生-mcp-服务-ironmac-mcp)
    - [3.10 一键全量引导安装向导 (`ironmac all`)](#310-一键全量引导安装向导-ironmac-all)
+   - [3.11 macOS 原生状态栏盾牌助手 (`ironmac app`)](#311-macos-原生状态栏盾牌助手-ironmac-app)
+   - [3.12 Raycast 脚本生态与快捷键防御 (`ironmac raycast`)](#312-raycast-脚本生态与快捷键防御-ironmac-raycast)
 4. [IronVault 安全控制台深度操作指南](#4-ironvault-安全控制台深度操作指南)
    - [4.1 纯易失性 RAM Disk 机制与工作空间](#41-纯易失性-ram-disk-机制与工作空间)
    - [4.2 零磁盘日志与历史记录敏感词实时脱敏](#42-零磁盘日志与历史记录敏感词实时脱敏)
@@ -31,10 +37,11 @@
    - [5.2 客户端接入配置 (Cursor / Claude Desktop / Antigravity / Windsurf / Cline)](#52-客户端接入配置)
    - [5.3 10 项原生安全 MCP 工具全景参考](#53-10-项原生安全-mcp-工具全景参考)
    - [5.4 自主 Agent 链上交易与脚本审计实战示例](#54-自主-agent-链上交易与脚本审计实战示例)
-6. [三大核心防御子系统详解](#6-三大核心防御子系统详解)
+6. [核心防御子系统与桌面端 UI 体验详解](#6-核心防御子系统与桌面端-ui-体验详解)
    - [6.1 Anti-AMOS 诱饵蜜罐与 kqueue 零 CPU 哨兵](#61-anti-amos-诱饵蜜罐与-kqueue-零-cpu-哨兵)
    - [6.2 剪贴板防投毒与 30 秒私钥自动物理抹除](#62-剪贴板防投毒与-30-秒私钥自动物理抹除)
    - [6.3 专用隔离清洁仓交易浏览器工作原理](#63-专用隔离清洁仓交易浏览器工作原理)
+   - [6.4 原生 Swift 状态栏 HUD 与 Raycast 效率融合机制](#64-原生-swift-状态栏-hud-与-raycast-效率融合机制)
 7. [Web3 生产环境安全作业程序 (SOP)](#7-web3-生产环境安全作业程序-sop)
    - [SOP 1：巨鲸 / 多签管理者大额离线冷签名](#sop-1巨鲸--多签管理者大额离线冷签名)
    - [SOP 2：空投猎人与高危测试网 Burner 钱包交互](#sop-2空投猎人与高危测试网-burner-钱包交互)
@@ -71,7 +78,28 @@ IronMac 遵循极其严苛的安全工程准则：
 - 处理器架构：Apple Silicon (M1/M2/M3/M4 系列芯片) 或 Intel x86_64
 - 权限要求：部分系统加固命令（如开启隐身防火墙、修改 networksetup）需要 `sudo` 授权
 
-### 2.2 方式一：一键自动安装（推荐）
+### 2.2 方式一：Homebrew Tap 安装（macOS 用户推荐）
+
+IronMac 提供了官方 Homebrew Formula 分发。你可以使用 `brew` 进行标准包管理，零手动环境变量配置：
+
+```bash
+# 添加官方 Tap 仓库并安装
+brew tap 0xaicrypto/ironmac
+brew install ironmac
+
+# 或直接通过单行命令安装：
+brew install 0xaicrypto/ironmac/ironmac
+```
+
+安装完成后，直接验证环境：
+```bash
+ironmac --version
+ironmac audit
+```
+
+Homebrew 安装会自动将 `ironmac` 链接到全局 PATH（`/opt/homebrew/bin/ironmac` 或 `/usr/local/bin/ironmac`），并自动构建编译原生的 macOS 状态栏 App。
+
+### 2.3 方式二：一键脚本在线安装
 
 打开终端，运行官方已签名的在线安装脚本：
 ```bash
@@ -90,7 +118,7 @@ curl -fsSL https://raw.githubusercontent.com/0xaicrypto/ironmac/main/install.sh 
 4. 立即运行全套 Mac 安全体检（Audit），并询问是否立即加固。
 5. 若已安装 Node.js，自动准备好内置的 TypeScript MCP 服务。
 
-### 2.3 方式二：手动克隆与本地编译
+### 2.4 方式三：手动克隆与本地编译
 
 如果你希望深度定制开发或二次审查代码：
 ```bash
@@ -262,6 +290,40 @@ Usage: ironmac <command> [options]
 
 ### 3.10 一键全量引导安装向导 (`ironmac all`)
 * **作用**：针对新装机或首次使用的 MacBook，按顺序执行：系统审计 ➔ 自动基线加固 ➔ 部署蜜罐探针 ➔ 启动剪贴板卫士 ➔ 准备 Vault 浏览器 ➔ 引导工具链安装。
+
+---
+
+### 3.11 macOS 原生状态栏盾牌助手 (`ironmac app` / `ironmac menu`)
+* **作用**：启动常驻 macOS 顶部菜单栏的轻量级原生防御控制中心（Swift 原生 AppKit 构建）。
+* **执行命令**：
+  ```bash
+  ironmac app
+  # 或快捷简写：
+  ironmac menu
+  ```
+* **核心特性**：
+  - **零 Dock 侵占**：采用 macOS `.accessory` 激活策略，完全隐藏于状态栏（呈现 🛡️ 盾牌图标），不占用任何 Dock 栏宝贵空间。
+  - **超低资源开销**：常驻内存仅 `< 15 MB`，采用异步事件机制，空闲状态 CPU 占用率绝对 `0.0%`。
+  - **一键物理断网 (Hardware Air-Gap)**：快捷键 `⌘A` 或点击菜单，通过系统 `networksetup` 毫秒级断开/恢复 `en0` 物理网卡供电。
+  - **一键唤起 RAM 控制台与隔离浏览器**：点击菜单瞬间在独立终端中挂载 RAM Disk 保险库 (`⌘C`) 或拉起隔离 Chrome 交易仓 (`⌘B`)。
+  - **一键物理剪贴板熔断**：快捷键 `⌘K` 瞬间将系统剪贴板内存抹除至 `/dev/null`。
+  - **🚨 桌面应急逃生按钮**：快捷键 `⌘P` 弹出高危警示确认框，确认后即刻触发全套物理断网、进程绞杀与锁屏逃生流程。
+
+---
+
+### 3.12 Raycast 脚本生态与快捷键防御 (`ironmac raycast`)
+* **作用**：展示并引导安装适用于 macOS [Raycast](https://raycast.com/) 的 6 项高频安全脚本扩展。
+* **执行命令**：
+  ```bash
+  ironmac raycast
+  ```
+* **内置脚本列表**（位于 `integrations/raycast/`）：
+  - `ironmac-hud.sh`：快速预览系统 SIP、FileVault、防火墙、蜜罐与断网状态。
+  - `ironmac-airgap.sh`：全局快捷键一键切断 / 恢复 Wi-Fi 物理连接。
+  - `ironmac-verify-address.sh`：弹出式校验 EVM 校验和 (EIP-55) 与地址相似度投毒防范。
+  - `ironmac-console.sh`：全局快捷键一键在 Terminal.app 中唤起 IronVault RAM 控制台。
+  - `ironmac-panic.sh`：全局高危逃生热键，瞬间切断网络并隔离现场。
+  - `ironmac-scan-secrets.sh`：对选中的文件或目录进行密钥、助记词与 `.env` 敏感泄露深度扫描。
 
 ---
 
@@ -544,7 +606,7 @@ async function safeExecuteTransfer(recipient: string, amount: string) {
 
 ---
 
-## 6. 三大核心防御子系统详解
+## 6. 核心防御子系统与桌面端 UI 体验详解
 
 ### 6.1 Anti-AMOS 诱饵蜜罐与 kqueue 零 CPU 哨兵
 - **攻击原理**：AMOS（Atomic macOS Stealer）等窃密软件在入侵宿主机后，第一秒就会运行内建脚本遍历常见位置（`~/.ethereum/keystore`、`~/.config/solana`、`~/Desktop/wallet.txt` 等）。
@@ -565,6 +627,50 @@ async function safeExecuteTransfer(recipient: string, amount: string) {
   - 强制开启严格沙盒模式。
   - 彻底关闭浏览器内部遥测与后台数据收集。
   - 独立 Cookie、独立缓存、独立扩展空间。你的日常浏览行为、下载的未签名 PDF/文件绝无可能接触到该浏览器的内存与进程。
+
+### 6.4 原生 Swift 状态栏 HUD 与 Raycast 效率融合机制
+
+除了终端与 MCP 协议，IronMac 针对日常高频交互量身打造了原生的 macOS 桌面 UI 体验，兼具极致轻量与零视觉干扰：
+
+```text
+       ┌────────────────────────────────────────────────────────┐
+       │ 🛡️ IronMac Fortress v0.4.0                            │
+       │ ● Active Defenses: ARMED                               │
+       │ ────────────────────────────────────────────────────── │
+       │ ⚡ Launch IronVault Console                        ⌘C   │
+       │ 🌐 Launch Vault Browser                            ⌘B   │
+       │ ────────────────────────────────────────────────────── │
+       │ 📶 Hardware Air-Gap: ONLINE (Wi-Fi ON)             ⌘A   │
+       │ 📋 Purge Pasteboard Memory                         ⌘K   │
+       │ 🔍 Run Security Health Audit...                        │
+       │ ────────────────────────────────────────────────────── │
+       │ 🚨 EMERGENCY AIR-GAP PANIC                         ⌘P   │
+       │ ────────────────────────────────────────────────────── │
+       │ Quit IronMac Menu                                  ⌘Q   │
+       └────────────────────────────────────────────────────────┘
+```
+
+#### 1. 原生 Swift 菜单栏伴侣 (`app/IronMacMenu.swift`)
+- **零框架依赖 (Pure AppKit/Cocoa)**：不使用任何臃肿的 Electron、Tauri 或 Chromium，仅 80KB 原生编译机器码，常驻内存 `< 15 MB`。
+- **`.accessory` 运行策略**：不在 Dock 栏显示图标，不干扰日常应用切换，仅作为顶栏防御中枢常驻。
+- **硬件级网卡通断 (Hardware Air-Gap)**：直接对接系统底层 `networksetup`，单次点击或快捷键 `⌘A` 即可关闭/开启 `en0` 物理 Wi-Fi 芯片供电。
+- **应急逃生安全气囊 (Panic Modal)**：点击 `🚨 EMERGENCY AIR-GAP PANIC` 或按下 `⌘P`，弹出防误触红色模态提示，确认后 1 秒内完成网络断开、剪贴板擦除与屏幕锁定。
+- **开机自启动配置**：
+  若希望每次开机自动常驻状态栏，打开 **macOS 系统设置 > 通用 > 登录项**，添加 `~/.ironmac/bin/ironmac-menu`（或 Homebrew 路径 `/opt/homebrew/bin/ironmac-menu`）即可。
+
+#### 2. Raycast 生产力扩展集成 (`integrations/raycast/`)
+针对习惯使用 Raycast 启动器的开发者与量化交易员，IronMac 原生内置了 6 项 Script Commands：
+- **`ironmac-hud.sh`**：在 Raycast 搜索栏中实时以 Markdown 格式呈现 macOS 防御总览（SIP、FileVault、防火墙、蜜罐哨兵、剪贴板卫士与硬件断网状态）。
+- **`ironmac-airgap.sh`**：绑定全局热键（如 `Hyper + A`），一键在任何应用之上秒切物理断网。
+- **`ironmac-verify-address.sh`**：输入待转账地址，即刻计算并比对 EIP-55 校验和，防范投毒。
+- **`ironmac-console.sh`**：全局一键拉起临时内存终端，即用即走。
+- **`ironmac-panic.sh`**：最高优先级逃生热键，现场遭遇物理或黑客威胁时极速锁闭系统。
+- **`ironmac-scan-secrets.sh`**：针对当前选中的项目目录进行私钥扫描，防止误提交。
+
+**配置方法**：
+1. 打开 Raycast 设置（快捷键 `⌘,`）➔ **Extensions** ➔ **Script Commands**。
+2. 点击右侧 **Add Directories**，选取目录 `~/.ironmac/integrations/raycast`。
+3. 即可在 Raycast 呼出面板中直接输入 `ironmac` 调出全部命令。
 
 ---
 

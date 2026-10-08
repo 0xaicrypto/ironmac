@@ -1,0 +1,222 @@
+import AppKit
+import Foundation
+
+class IronMacMenuDelegate: NSObject, NSApplicationDelegate {
+    var statusItem: NSStatusItem!
+    let menu = NSMenu()
+    let wifiDevice = "en0"
+
+    // Resolve ironmac binary location
+    var ironmacBin: String {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let candidates = [
+            "\(home)/.local/bin/ironmac",
+            "/opt/homebrew/bin/ironmac",
+            "/usr/local/bin/ironmac",
+            Bundle.main.bundlePath + "/Contents/MacOS/ironmac"
+        ]
+        for candidate in candidates {
+            if FileManager.default.isExecutableFile(atPath: candidate) {
+                return candidate
+            }
+        }
+        return "ironmac"
+    }
+
+    func applicationDidFinishLaunching(_ aNotification: Notification) {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = statusItem.button {
+            button.title = "🛡️"
+            button.toolTip = "IronMac Web3 Fortress Workstation"
+        }
+        buildMenu()
+
+        // Background timer to refresh telemetry every 5 seconds
+        Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.buildMenu()
+            }
+        }
+    }
+
+    func isAirgapActive() -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
+        process.arguments = ["-getairportpower", wifiDevice]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        try? process.run()
+        process.waitUntilExit()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: data, encoding: .utf8) ?? ""
+        return !output.contains("On")
+    }
+
+    func isProcessRunning(_ name: String) -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+        process.arguments = ["-f", name]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        try? process.run()
+        process.waitUntilExit()
+        return process.terminationStatus == 0
+    }
+
+    @objc func toggleAirgap() {
+        let currentlyAirgapped = isAirgapActive()
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
+        process.arguments = ["-setairportpower", wifiDevice, currentlyAirgapped ? "on" : "off"]
+        try? process.run()
+        process.waitUntilExit()
+        buildMenu()
+    }
+
+    @objc func openVaultConsole() {
+        let bin = ironmacBin
+        let script = "tell application \"Terminal\" to do script \"\(bin) console\" activate"
+        if let appleScript = NSAppleScript(source: script) {
+            var error: NSDictionary?
+            appleScript.executeAndReturnError(&error)
+        }
+    }
+
+    @objc func openVaultBrowser() {
+        let bin = ironmacBin
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/bash")
+        process.arguments = ["-c", "\(bin) vault-browser >/dev/null 2>&1 &"]
+        try? process.run()
+    }
+
+    @objc func clearClipboard() {
+        NSPasteboard.general.clearContents()
+        sendDesktopAlert(title: "IronMac Pasteboard Purged", message: "✓ Clipboard memory successfully wiped to /dev/null.")
+    }
+
+    @objc func triggerPanic() {
+        let alert = NSAlert()
+        alert.messageText = "🚨 Trigger Emergency Panic Air-Gap?"
+        alert.informativeText = "In <1s, this will:\n• Power off Wi-Fi hardware (en0)\n• Purge pasteboard memory\n• Terminate browsers and chat apps\n• Lock the screen"
+        alert.alertStyle = .critical
+        alert.addButton(withTitle: "TRIGGER PANIC NOW")
+        alert.addButton(withTitle: "Cancel")
+        
+        NSRunningApplication.current.activate()
+        if alert.runModal() == .alertFirstButtonReturn {
+            let bin = ironmacBin
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/bash")
+            process.arguments = ["-c", "\(bin) panic trigger \"Triggered via MenuBar Companion App\""]
+            try? process.run()
+            buildMenu()
+        }
+    }
+
+    @objc func runAudit() {
+        let bin = ironmacBin
+        let script = "tell application \"Terminal\" to do script \"\(bin) audit\" activate"
+        if let appleScript = NSAppleScript(source: script) {
+            var error: NSDictionary?
+            appleScript.executeAndReturnError(&error)
+        }
+    }
+
+    @objc func startDefenses() {
+        let bin = ironmacBin
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/bash")
+        process.arguments = ["-c", "\(bin) trap start; \(bin) clip-guard start"]
+        try? process.run()
+        process.waitUntilExit()
+        buildMenu()
+    }
+
+    @objc func quitApp() {
+        NSApplication.shared.terminate(nil)
+    }
+
+    func sendDesktopAlert(title: String, message: String) {
+        let script = "display notification \"\(message)\" with title \"\(title)\""
+        if let appleScript = NSAppleScript(source: script) {
+            var error: NSDictionary?
+            appleScript.executeAndReturnError(&error)
+        }
+    }
+
+    func buildMenu() {
+        menu.removeAllItems()
+
+        let airgapped = isAirgapActive()
+        let trapRunning = isProcessRunning("trap_sentry.py")
+        let clipRunning = isProcessRunning("clip_guard.py")
+
+        // 1. Header
+        let header = NSMenuItem(title: "🛡️ IronMac Fortress v0.4.0", action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        menu.addItem(header)
+
+        // 2. Status overview
+        let allArmed = trapRunning && clipRunning
+        let statusTitle = allArmed ? "● Active Defenses: ARMED" : "○ Active Defenses: PARTIAL"
+        let statusItem = NSMenuItem(title: statusTitle, action: nil, keyEquivalent: "")
+        statusItem.isEnabled = false
+        menu.addItem(statusItem)
+
+        if !allArmed {
+            let armItem = NSMenuItem(title: "  ↳ Click to Arm Trap & ClipGuard", action: #selector(startDefenses), keyEquivalent: "")
+            armItem.target = self
+            menu.addItem(armItem)
+        }
+
+        menu.addItem(NSMenuItem.separator())
+
+        // 3. Workstation Tools
+        let consoleItem = NSMenuItem(title: "⚡ Launch IronVault Console", action: #selector(openVaultConsole), keyEquivalent: "c")
+        consoleItem.target = self
+        menu.addItem(consoleItem)
+
+        let browserItem = NSMenuItem(title: "🌐 Launch Vault Browser", action: #selector(openVaultBrowser), keyEquivalent: "b")
+        browserItem.target = self
+        menu.addItem(browserItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // 4. Hardware Air-Gap Switch
+        let airgapTitle = airgapped ? "📶 Hardware Air-Gap: ACTIVE (Wi-Fi OFF)" : "📶 Hardware Air-Gap: ONLINE (Wi-Fi ON)"
+        let airgapItem = NSMenuItem(title: airgapTitle, action: #selector(toggleAirgap), keyEquivalent: "a")
+        airgapItem.target = self
+        menu.addItem(airgapItem)
+
+        let clipItem = NSMenuItem(title: "📋 Purge Pasteboard Memory", action: #selector(clearClipboard), keyEquivalent: "k")
+        clipItem.target = self
+        menu.addItem(clipItem)
+
+        let auditItem = NSMenuItem(title: "🔍 Run Security Health Audit...", action: #selector(runAudit), keyEquivalent: "")
+        auditItem.target = self
+        menu.addItem(auditItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // 5. Emergency Threat Panic
+        let panicItem = NSMenuItem(title: "🚨 EMERGENCY AIR-GAP PANIC", action: #selector(triggerPanic), keyEquivalent: "p")
+        panicItem.target = self
+        menu.addItem(panicItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // 6. Quit
+        let quitItem = NSMenuItem(title: "Quit IronMac Menu", action: #selector(quitApp), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
+
+        statusItem.menu = menu
+    }
+}
+
+let app = NSApplication.shared
+let delegate = IronMacMenuDelegate()
+app.delegate = delegate
+app.setActivationPolicy(.accessory)
+app.run()

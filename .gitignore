@@ -30,3 +30,6 @@ Temporary Items
 # Node / TypeScript
 node_modules/
 *.tsbuildinfo
+
+# Compiled binaries
+bin/ironmac-menu

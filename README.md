@@ -34,6 +34,7 @@
   - [5. Client Setup (Cursor, Claude Desktop, Antigravity)](#5-client-setup-cursor-claude-desktop-antigravity)
   - [6. Autonomous Agent Workflow Example](#6-autonomous-agent-workflow-example)
 - [Vault Browser vs. Vault Console: Key Differences](#-architectural-distinction-vault-browser-vs-vault-console)
+- [🖥️ Native macOS MenuBar HUD & Raycast](#-native-macos-menubar-hud--raycast)
 - [Quick Start & Installation](#-quick-start--installation)
 - [Command Reference](#-command-reference)
 - [System Architecture](#-system-architecture)
@@ -459,9 +460,88 @@ await mcp.callTool("toggle_airgap", { action: "off" });
 
 ---
 
+## 🖥️ Native macOS MenuBar HUD & Raycast
+
+IronMac pairs CLI-grade security with native macOS desktop ergonomics. You can monitor your fortress status and trigger critical actions without touching a terminal.
+
+```text
+       ┌────────────────────────────────────────────────────────┐
+       │ 🛡️ IronMac Fortress v0.4.0                            │
+       │ ● Active Defenses: ARMED                               │
+       │ ────────────────────────────────────────────────────── │
+       │ ⚡ Launch IronVault Console                        ⌘C   │
+       │ 🌐 Launch Vault Browser                            ⌘B   │
+       │ ────────────────────────────────────────────────────── │
+       │ 📶 Hardware Air-Gap: ONLINE (Wi-Fi ON)             ⌘A   │
+       │ 📋 Purge Pasteboard Memory                         ⌘K   │
+       │ 🔍 Run Security Health Audit...                        │
+       │ ────────────────────────────────────────────────────── │
+       │ 🚨 EMERGENCY AIR-GAP PANIC                         ⌘P   │
+       │ ────────────────────────────────────────────────────── │
+       │ Quit IronMac Menu                                  ⌘Q   │
+       └────────────────────────────────────────────────────────┘
+```
+
+### 1. Zero-Overhead Swift MenuBar Companion (`ironmac app`)
+
+Built purely in native Swift Cocoa / AppKit (`NSStatusBar` & `NSMenu`):
+- **Zero Dock Clutter:** Uses macOS `.accessory` activation policy—lives exclusively in your top menu bar with no visible Dock icon.
+- **Ultra-Lightweight:** Consumes `< 15 MB` RAM and `0.0%` idle CPU (kqueue event-driven with 5s telemetry polling).
+- **Instant Hardware Air-Gap:** Toggle Wi-Fi hardware off/on in 1 click via macOS `networksetup`.
+- **One-Click Vault Console & Browser:** Instantly launch your ephemeral RAM disk workspace or isolated MetaMask profile.
+- **1-Click Pasteboard Purge:** Wipe system clipboard memory clean to prevent key theft.
+- **🚨 Emergency Panic Button:** Double-confirmation modal triggers immediate network cutoff, clipboard shredding, app termination, and screen lock in `<1s`.
+
+```bash
+# Launch MenuBar Companion
+ironmac app
+
+# Auto-start on boot (optional)
+# Add ~/.ironmac/bin/ironmac-menu to macOS System Settings -> General -> Login Items
+```
+
+### 2. Raycast Script Commands (`ironmac raycast`)
+
+If you use [Raycast](https://raycast.com/), IronMac provides 6 native script command integrations with keyboard shortcuts and full telemetry:
+
+| Command | File | Description | Shortcut / Mode |
+| :--- | :--- | :--- | :--- |
+| **🛡️ IronMac HUD** | `ironmac-hud.sh` | Live security telemetry (SIP, FileVault, Firewall, Trap, AirGap) | Inline View |
+| **📶 Air-Gap Switch** | `ironmac-airgap.sh` | 1-click hardware Wi-Fi disconnect / reconnect | Action |
+| **🔍 Verify Address** | `ironmac-verify-address.sh` | EIP-55 checksum validation & anti-poisoning analysis | Modal Prompt |
+| **⚡ Vault Console** | `ironmac-console.sh` | Spawns zero-trace ephemeral RAM terminal in Terminal.app | Action |
+| **🚨 EMERGENCY PANIC** | `ironmac-panic.sh` | High-priority emergency threat cutoff & isolation | Action |
+| **🔑 Scan Secrets** | `ironmac-scan-secrets.sh` | Scan workspace/path for leaked private keys, mnemonics, `.env` | File / Folder Target |
+
+**How to Install in Raycast:**
+1. Open **Raycast Preferences** (`⌘,`) -> **Extensions** -> **Script Commands**.
+2. Click **Add Directories** and select `~/.ironmac/integrations/raycast` (or your local `integrations/raycast` directory).
+3. The commands will instantly become searchable in Raycast!
+
+---
+
 ## 🚀 Quick Start & Installation
 
-### Option 1: One-Line Guided Install & Audit (Recommended)
+### Option 1: Official Homebrew Tap (Recommended for macOS Users)
+
+Install via Homebrew with zero manual path configuration:
+
+```bash
+# Tap repository and install
+brew tap 0xaicrypto/ironmac
+brew install ironmac
+
+# Or via direct one-liner:
+brew install 0xaicrypto/ironmac/ironmac
+```
+
+After installation, verify your environment:
+```bash
+ironmac --version
+ironmac audit
+```
+
+### Option 2: One-Line Guided Install via curl
 
 Run the verified installer directly via curl:
 
@@ -473,7 +553,7 @@ curl -fsSL https://raw.githubusercontent.com/0xaicrypto/ironmac/main/install.sh 
 > **Audit Before Running:** You can inspect the installer code prior to execution by running:  
 > `curl -fsSL https://raw.githubusercontent.com/0xaicrypto/ironmac/main/install.sh | less`
 
-### Option 2: Clone and Run Locally
+### Option 3: Clone and Run Locally
 
 ```bash
 git clone https://github.com/0xaicrypto/ironmac.git
@@ -503,6 +583,8 @@ Commands:
   panic          Emergency air-gap: instant Wi-Fi shutdown & threat isolation [trigger|restore]
   tools          Interactive installer for curated Web3 developer & trader tools
   mcp            Run Model Context Protocol (MCP) server for AI Agents (Cursor/Claude)
+  app            Launch native macOS MenuBar companion HUD (shield in top bar)
+  raycast        Install or inspect Raycast script command integrations
   all            Run the complete guided setup wizard
   version        Print IronMac version
   help           Display this help message
