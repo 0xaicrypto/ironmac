@@ -18,6 +18,7 @@ import { promisify } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import crypto from "node:crypto";
 
 const execAsync = promisify(exec);
 
@@ -113,6 +114,75 @@ const TOOLS: Tool[] = [
         },
       },
       required: ["reason"],
+    },
+  },
+  {
+    name: "get_network_rpc",
+    description:
+      "Resolves curated, privacy-preserving RPC endpoints, chain IDs, and explorers for EVM & Solana networks (e.g. eth, sepolia, base, mantle, arb, op, polygon, bsc, solana). Matches the ironconsole 'rpc' hub.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        network: {
+          type: "string",
+          enum: [
+            "eth",
+            "sepolia",
+            "base",
+            "mantle",
+            "arb",
+            "op",
+            "polygon",
+            "bsc",
+            "solana",
+            "all",
+          ],
+          description: "Target network keyword (defaults to 'all')",
+        },
+      },
+    },
+  },
+  {
+    name: "shred_file",
+    description:
+      "Cryptographically overwrites a file with 3 passes of random data before deletion, preventing SSD / RAM forensic recovery. Matches the ironconsole 'shred' tool.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        file_path: {
+          type: "string",
+          description: "Absolute or relative path of the file to cryptographically wipe",
+        },
+      },
+      required: ["file_path"],
+    },
+  },
+  {
+    name: "calculate_keccak256",
+    description:
+      "Computes Keccak-256 hash or 4-byte Ethereum function selector offline. Matches the ironconsole 'keccak' command.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        data: {
+          type: "string",
+          description: "String or hex data to hash (e.g. 'transfer(address,uint256)' or '0x...')",
+        },
+        is_hex: {
+          type: "boolean",
+          description: "Whether the input data is hex-encoded bytes",
+        },
+      },
+      required: ["data"],
+    },
+  },
+  {
+    name: "get_custody_playbook",
+    description:
+      "Returns the tactical Web3 private key custody rules, cold storage procedures, and forbidden persistence vectors. Matches the ironconsole 'key-guide' / 'wallet-guide'.",
+    inputSchema: {
+      type: "object",
+      properties: {},
     },
   },
 ];
@@ -225,12 +295,27 @@ async function runAudit() {
   };
 }
 
+function toChecksumAddress(address: string): string {
+  const addr = address.toLowerCase().replace(/^0x/, "");
+  const hash = crypto.createHash("keccak-256").update(addr).digest("hex");
+  let ret = "0x";
+  for (let i = 0; i < addr.length; i++) {
+    if (parseInt(hash[i], 16) >= 8) {
+      ret += addr[i].toUpperCase();
+    } else {
+      ret += addr[i];
+    }
+  }
+  return ret;
+}
+
 function verifyAddress(addr: string, chain: string = "auto") {
   const cleanAddr = addr.trim();
   const results: {
     address: string;
     detected_chain: string;
     is_valid_format: boolean;
+    checksummed_address?: string;
     checksum_status: "VALID_EIP55" | "INVALID_CHECKSUM" | "LOWERCASE_OR_UPPERCASE" | "N/A";
     risk_level: "LOW" | "SUSPICIOUS" | "INVALID";
     warnings: string[];
@@ -247,13 +332,18 @@ function verifyAddress(addr: string, chain: string = "auto") {
   if (/^0x[a-fA-F0-9]{40}$/.test(cleanAddr)) {
     results.detected_chain = "EVM (Ethereum / Base / Arbitrum / Mantle / Polygon / BSC)";
     results.is_valid_format = true;
+    const checksummed = toChecksumAddress(cleanAddr);
+    results.checksummed_address = checksummed;
 
-    // Checksum check
-    if (cleanAddr === cleanAddr.toLowerCase() || cleanAddr === cleanAddr.toUpperCase()) {
-      results.checksum_status = "LOWERCASE_OR_UPPERCASE";
-      results.warnings.push("Address lacks EIP-55 mixed-case checksum. Double-check destination characters.");
-    } else {
+    if (cleanAddr === checksummed) {
       results.checksum_status = "VALID_EIP55";
+    } else if (cleanAddr === cleanAddr.toLowerCase() || cleanAddr === cleanAddr.toUpperCase()) {
+      results.checksum_status = "LOWERCASE_OR_UPPERCASE";
+      results.warnings.push(`Address lacks EIP-55 mixed-case checksum capitalization. Suggested: ${checksummed}`);
+    } else {
+      results.checksum_status = "INVALID_CHECKSUM";
+      results.risk_level = "INVALID";
+      results.warnings.push(`Corrupted or forged EIP-55 checksum! Expected: ${checksummed}`);
     }
 
     // Check for obvious vanity / poison patterns (e.g. 0x000000... or repeated chunks)
@@ -438,6 +528,179 @@ async function triggerPanic(reason: string) {
   };
 }
 
+const NETWORK_RPCS: Record<
+  string,
+  { chain_id: number | string; name: string; rpc_url: string; currency: string; explorer: string }
+> = {
+  eth: {
+    chain_id: 1,
+    name: "Ethereum Mainnet",
+    rpc_url: "https://eth.llamarpc.com",
+    currency: "ETH",
+    explorer: "https://etherscan.io",
+  },
+  sepolia: {
+    chain_id: 11155111,
+    name: "Sepolia Testnet",
+    rpc_url: "https://rpc.sepolia.org",
+    currency: "ETH",
+    explorer: "https://sepolia.etherscan.io",
+  },
+  base: {
+    chain_id: 8453,
+    name: "Base Mainnet",
+    rpc_url: "https://mainnet.base.org",
+    currency: "ETH",
+    explorer: "https://basescan.org",
+  },
+  mantle: {
+    chain_id: 5000,
+    name: "Mantle Network",
+    rpc_url: "https://rpc.mantle.xyz",
+    currency: "MNT",
+    explorer: "https://mantlescan.xyz",
+  },
+  arb: {
+    chain_id: 42161,
+    name: "Arbitrum One",
+    rpc_url: "https://arb1.arbitrum.io/rpc",
+    currency: "ETH",
+    explorer: "https://arbiscan.io",
+  },
+  op: {
+    chain_id: 10,
+    name: "Optimism Mainnet",
+    rpc_url: "https://mainnet.optimism.io",
+    currency: "ETH",
+    explorer: "https://optimistic.etherscan.io",
+  },
+  polygon: {
+    chain_id: 137,
+    name: "Polygon PoS",
+    rpc_url: "https://polygon-rpc.com",
+    currency: "POL",
+    explorer: "https://polygonscan.com",
+  },
+  bsc: {
+    chain_id: 56,
+    name: "BNB Smart Chain",
+    rpc_url: "https://binance.llamarpc.com",
+    currency: "BNB",
+    explorer: "https://bscscan.com",
+  },
+  solana: {
+    chain_id: "mainnet-beta",
+    name: "Solana Mainnet",
+    rpc_url: "https://api.mainnet-beta.solana.com",
+    currency: "SOL",
+    explorer: "https://solscan.io",
+  },
+};
+
+function getNetworkRpc(network: string = "all") {
+  const key = network.toLowerCase().trim();
+  if (key === "all" || key === "list" || !key) {
+    return {
+      total: Object.keys(NETWORK_RPCS).length,
+      networks: NETWORK_RPCS,
+      usage: "Pass network='eth' | 'base' | 'mantle' | 'sepolia' to get single endpoint.",
+    };
+  }
+  const match = NETWORK_RPCS[key];
+  if (match) {
+    return { network: key, ...match };
+  }
+  return {
+    error: `Unknown network: ${network}`,
+    available_networks: Object.keys(NETWORK_RPCS),
+  };
+}
+
+async function shredFile(filePath: string) {
+  const resolved = path.resolve(process.cwd(), filePath);
+  if (!fs.existsSync(resolved)) {
+    return { error: `File not found: ${resolved}` };
+  }
+  const stat = fs.statSync(resolved);
+  if (!stat.isFile()) {
+    return { error: `Path is not a regular file: ${resolved}` };
+  }
+
+  const fileSize = stat.size;
+  const passes = 3;
+
+  const fd = fs.openSync(resolved, "r+");
+  for (let pass = 1; pass <= passes; pass++) {
+    const randomBuf = crypto.randomBytes(Math.min(fileSize || 1024, 65536));
+    let written = 0;
+    while (written < fileSize) {
+      const chunk = Math.min(randomBuf.length, fileSize - written);
+      fs.writeSync(fd, randomBuf, 0, chunk, written);
+      written += chunk;
+    }
+    fs.fsyncSync(fd);
+  }
+  fs.closeSync(fd);
+  fs.unlinkSync(resolved);
+
+  return {
+    file: resolved,
+    bytes_overwritten: fileSize,
+    passes,
+    status: "CRYPTOGRAPHICALLY_SHREDDED",
+    message: "File overwritten with 3 passes of CSPRNG bytes and unlinked from filesystem.",
+  };
+}
+
+function calculateKeccak256(data: string, isHex: boolean = false) {
+  let buf: Buffer;
+  if (isHex) {
+    const clean = data.startsWith("0x") ? data.slice(2) : data;
+    buf = Buffer.from(clean, "hex");
+  } else {
+    buf = Buffer.from(data, "utf-8");
+  }
+  const hash = crypto.createHash("keccak-256").update(buf).digest("hex");
+  const result: any = {
+    input: data,
+    keccak256: "0x" + hash,
+  };
+  if (/^[a-zA-Z0-9_$]+\(.*\)$/.test(data)) {
+    result.function_selector = "0x" + hash.slice(0, 8);
+  }
+  return result;
+}
+
+function getCustodyPlaybook() {
+  return {
+    principles: "Don't Trust, Verify. Plaintext keys in persistent storage are compromised keys.",
+    paths: [
+      {
+        path: "[PATH 1] PHYSICAL COLD STORAGE (Large Assets / Treasury / Mainnet)",
+        instructions: "Transcribe 12/24 mnemonics onto paper or stamped steel. Run 'clear' immediately.",
+      },
+      {
+        path: "[PATH 2] ENCRYPTED FOUNDRY KEYSTORE (CLI Scripts & Deployments)",
+        instructions: "Run 'cast wallet import <name> -i'. Never write keys to .env!",
+      },
+      {
+        path: "[PATH 3] ISOLATED DEFI BROWSER (MetaMask / Rabby / DApps)",
+        instructions: "Run 'ironmac vault-browser'. Keystore stored in dedicated ~/Library/Application Support/IronMacVault.",
+      },
+      {
+        path: "[PATH 4] EPHEMERAL BURNER WALLET (Airdrop Claims / Testing)",
+        instructions: "Generate and sign exclusively in RAM (/Volumes/IronVault_*/). Vanishes on 'exit'.",
+      },
+    ],
+    forbidden_vectors: [
+      "Apple Notes / Notion / Obsidian (Syncs plaintext to cloud)",
+      "WeChat / Telegram Saved Messages (Cached unencrypted on disk)",
+      "Screenshots / Photo Library (OCR malware harvesting)",
+      "Plaintext .env in git repositories (Scraped within seconds)",
+    ],
+  };
+}
+
 // --- Start MCP Server ---
 
 async function main() {
@@ -489,6 +752,26 @@ async function main() {
         case "trigger_emergency_panic": {
           const reason = String(args?.reason ?? "Malware detection via AI Agent");
           const result = await triggerPanic(reason);
+          return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+        }
+        case "get_network_rpc": {
+          const network = String(args?.network ?? "all");
+          const result = getNetworkRpc(network);
+          return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+        }
+        case "shred_file": {
+          const filePath = String(args?.file_path ?? "");
+          const result = await shredFile(filePath);
+          return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+        }
+        case "calculate_keccak256": {
+          const data = String(args?.data ?? "");
+          const isHex = Boolean(args?.is_hex ?? false);
+          const result = calculateKeccak256(data, isHex);
+          return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+        }
+        case "get_custody_playbook": {
+          const result = getCustodyPlaybook();
           return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
         }
         default:

@@ -27,9 +27,10 @@
 - [🤖 AI Agent Ecosystem & MCP Integration](#-ai-agent-ecosystem--mcp-integration)
   - [1. The AI Agent Threat Model in Web3](#1-the-ai-agent-threat-model-in-web3)
   - [2. Dual Architecture: Guardrail + Autonomous Control Plane](#2-dual-architecture-guardrail--autonomous-control-plane)
-  - [3. Model Context Protocol (MCP) Tools Reference](#3-model-context-protocol-mcp-tools-reference)
-  - [4. Client Setup (Cursor, Claude Desktop, Antigravity)](#4-client-setup-cursor-claude-desktop-antigravity)
-  - [5. Autonomous Agent Workflow Example](#5-autonomous-agent-workflow-example)
+  - [3. IronConsole vs. MCP Feature Parity Matrix](#3-ironconsole-vs-mcp-feature-parity-matrix)
+  - [4. Model Context Protocol (MCP) Tools Reference](#4-model-context-protocol-mcp-tools-reference)
+  - [5. Client Setup (Cursor, Claude Desktop, Antigravity)](#5-client-setup-cursor-claude-desktop-antigravity)
+  - [6. Autonomous Agent Workflow Example](#6-autonomous-agent-workflow-example)
 - [Vault Browser vs. Vault Console: Key Differences](#-architectural-distinction-vault-browser-vs-vault-console)
 - [Quick Start & Installation](#-quick-start--installation)
 - [Command Reference](#-command-reference)
@@ -276,29 +277,40 @@ When running or developing autonomous Web3 agents, IronMac provides an official 
 
 ---
 
-### 3. Model Context Protocol (MCP) Tools Reference
+### 3. IronConsole vs. MCP Feature Parity Matrix
 
-The IronMac MCP server runs over standard `stdio` and exposes 6 high-integrity tools:
+Every defensive capability and cryptographic tool in IronMac is **100% symmetrically aligned** between human developers inside the secure terminal (`ironmac console`) and autonomous AI agents connecting via stdio (`ironmac mcp`):
+
+| Capability / Domain | 💻 IronConsole Terminal Command | 🤖 AI Agent MCP Tool | Core Protective Value |
+| :--- | :--- | :--- | :--- |
+| **System Security Audit** | `audit` | `audit_system_security` | Live FileVault, SIP, Firewall, Gatekeeper & SSH posture evaluation |
+| **Address Verification & EIP-55** | `verify-address <addr>` | `verify_crypto_address` | True Keccak-256 EIP-55 checksum validation & vanity poisoning detection |
+| **Hardware Air-Gap Switch** | `airgap [on\|off\|status]` | `toggle_airgap` | Hardware Wi-Fi (`en0`) isolation switch for clean-room signing |
+| **Defensive Telemetry** | `hud` / `status` | `get_defense_telemetry` | Real-time status of canary sentry, clip guard daemon & RAM vaults |
+| **Secret Leak Scanner** | `scan-secrets [path]` | `scan_secrets` | Recursively scans files/code for exposed 64-hex keys and sensitive envs |
+| **Emergency Threat Panic** | `panic [reason]` | `trigger_emergency_panic` | Instant hardware network drop, clipboard wipe & threat containment |
+| **Multi-Chain RPC Hub** | `rpc [eth\|base\|mantle\|...]` | `get_network_rpc` | Curated zero-tracking RPC endpoints (EVM & Solana) |
+| **Cryptographic Shredder** | `shred <file>` | `shred_file` | DoD 3-pass CSPRNG random overwrite before unlinking |
+| **Keccak-256 Hasher** | `keccak <string>` | `calculate_keccak256` | Offline Keccak-256 hash & 4-byte ERC function selector |
+| **Key Custody Playbook** | `key-guide` / `wallet-guide` | `get_custody_playbook` | Operational security rules and forbidden storage vectors |
+
+---
+
+### 4. Model Context Protocol (MCP) Tools Reference
+
+The IronMac MCP server runs over standard `stdio` and exposes 10 high-integrity tools:
 
 #### 1. `audit_system_security`
 * **Description:** Runs a live security audit of macOS host defenses.
-* **Returns:** JSON object containing:
-  - `filevault`: Encryption status (Enabled/Disabled).
-  - `sip`: System Integrity Protection status.
-  - `firewall`: Application Firewall state & Stealth Mode.
-  - `gatekeeper`: Gatekeeper verification status.
-  - `ssh_remote_login`: Remote Login service status (should be Disabled).
-  - `guest_account`: Guest user account status.
-  - `score`: Overall workstation defense score (0–100).
-  - `passed`: Boolean indicating if the workstation meets minimum Web3 defense baselines.
+* **Returns:** JSON object containing `filevault`, `sip`, `firewall`, `gatekeeper`, `ssh_remote_login`, `guest_account`, and overall security `score` (0–100).
 
 #### 2. `verify_crypto_address`
-* **Description:** Performs rigorous cryptographic format, checksum, and address poisoning validation before transaction execution.
+* **Description:** Performs rigorous cryptographic format, true Keccak-256 EIP-55 checksum, and address poisoning validation before transaction execution.
 * **Parameters:**
   - `address` (string, required): The recipient address to verify.
   - `expected_chain` (enum: `"evm"` | `"solana"` | `"bitcoin"` | `"auto"`, default: `"auto"`).
 * **Security Checks:**
-  - **EIP-55 Checksum:** Validates mixed-case capitalization. Flags all-lowercase addresses as warnings and invalid mixed-case as checksum errors.
+  - **EIP-55 Checksum:** Validates mixed-case capitalization. Flags all-lowercase addresses as warnings and invalid mixed-case as checksum errors. Returns the corrected `checksummed_address`.
   - **Address Poisoning Detection:** Checks for repetitive zero-address patterns (`0x000...000`) and vanity collision patterns.
   - **Solana:** Validates Base58 character set and length (32–44 characters).
   - **Bitcoin:** Validates Legacy (`1...`), P2SH (`3...`), SegWit (`bc1q...`), and Taproot (`bc1p...`) formats.
@@ -307,34 +319,42 @@ The IronMac MCP server runs over standard `stdio` and exposes 6 high-integrity t
 * **Description:** Enables or disables physical network isolation by toggling the macOS Wi-Fi interface (`en0`).
 * **Parameters:**
   - `action` (enum: `"on"` | `"off"` | `"status"` | `"toggle"`, required): `"on"` disables Wi-Fi (air-gapped), `"off"` restores Wi-Fi connectivity.
-* **Use Case:** Allows autonomous agents to enforce a hardware air-gap during offline signing and restore connectivity only when broadcasting pre-signed transactions.
 
 #### 4. `get_defense_telemetry`
-* **Description:** Queries real-time operational status of all active IronMac daemons and protective environments.
-* **Returns:**
-  - `honeypot_sentry`: `active` or `inactive` (Anti-AMOS canary tripwire daemon).
-  - `clip_guard`: `active` or `inactive` (Clipboard address-swap detector & 30s auto-purge).
-  - `ram_vault`: Mount state of `/Volumes/IronVault/`.
-  - `network`: Hardware interface (`en0`) state (Online / Air-Gapped).
+* **Description:** Queries real-time operational status of all active IronMac daemons (`honeypot_sentry`, `clip_guard`, `ram_vault`, `network`).
 
 #### 5. `scan_secrets`
 * **Description:** Recursively scans a file or directory for unencrypted private keys, mnemonics, and sensitive environment variables before code is committed or shared.
 * **Parameters:**
   - `target_path` (string, required): Absolute or relative path to file or directory to scan.
-* **Detection Patterns:**
-  - Raw 64-character hexadecimal private keys (`0x[0-9a-fA-F]{64}`).
-  - Sensitive environment variable definitions (`PRIVATE_KEY=`, `MNEMONIC=`, `WALLET_SECRET=`, `SEED_PHRASE=`).
-  - Solana base58 private key arrays.
 
 #### 6. `trigger_emergency_panic`
 * **Description:** Programmatically activates the IronMac Emergency Air-Gap protocol.
 * **Parameters:**
   - `reason` (string, required): Audit reason or anomaly description triggering the panic.
-* **Action:** Instantly powers off Wi-Fi, wipes clipboard memory, and logs an emergency containment event.
+
+#### 7. `get_network_rpc`
+* **Description:** Resolves curated, privacy-preserving RPC endpoints, chain IDs, and explorers for EVM & Solana networks. Matches the `rpc` hub in `ironconsole`.
+* **Parameters:**
+  - `network` (enum: `"eth"` | `"sepolia"` | `"base"` | `"mantle"` | `"arb"` | `"op"` | `"polygon"` | `"bsc"` | `"solana"` | `"all"`, default: `"all"`).
+
+#### 8. `shred_file`
+* **Description:** Cryptographically overwrites a file with 3 passes of random data before deletion, preventing SSD / RAM forensic recovery. Matches `shred` in `ironconsole`.
+* **Parameters:**
+  - `file_path` (string, required): Path of the file to cryptographically wipe.
+
+#### 9. `calculate_keccak256`
+* **Description:** Computes Keccak-256 hash or 4-byte Ethereum function selector offline. Matches `keccak` in `ironconsole`.
+* **Parameters:**
+  - `data` (string, required): String or hex data to hash (e.g. `'transfer(address,uint256)'`).
+  - `is_hex` (boolean, optional, default: `false`): Whether input data is hex-encoded.
+
+#### 10. `get_custody_playbook`
+* **Description:** Returns the tactical Web3 private key custody rules, cold storage procedures, and forbidden persistence vectors. Matches `key-guide` in `ironconsole`.
 
 ---
 
-### 4. Client Setup (Cursor, Claude Desktop, Antigravity)
+### 5. Client Setup (Cursor, Claude Desktop, Antigravity)
 
 #### Option A: Global CLI Command (Recommended)
 If IronMac is installed globally (`curl ... | bash` or symlinked to `~/.local/bin/ironmac`):
@@ -393,7 +413,7 @@ If invoking directly from the cloned repository or bundled build:
 
 ---
 
-### 5. Autonomous Agent Workflow Example
+### 6. Autonomous Agent Workflow Example
 
 Here is how an autonomous Web3 agent leverages IronMac MCP tools to safely execute an on-chain transfer:
 

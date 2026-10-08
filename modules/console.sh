@@ -6,9 +6,11 @@
 
 set -euo pipefail
 
-# Capture host directory prior to entering RAM disk
+# Capture host directory and IronMac root prior to entering RAM disk
 ORIGINAL_CWD="${PWD}"
-export ORIGINAL_CWD
+CONSOLE_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+IRONMAC_HOME="$(cd -P "${CONSOLE_DIR}/.." >/dev/null 2>&1 && pwd)"
+export ORIGINAL_CWD IRONMAC_HOME
 
 # ANSI 256-color & style definitions
 BOLD="\033[1m"
@@ -149,13 +151,141 @@ alias starknet-wallet="starkli"
 alias vault-browser="ironmac vault-browser"
 alias clip-guard="ironmac clip-guard"
 alias trap="ironmac trap"
-alias panic="ironmac panic"
 alias iron-help=help
 alias '?'=help
 alias status=hud
 alias key-guide=key_guide
 alias wallet-guide=key_guide
 alias vopen=finder
+alias check-address="verify-address"
+alias eip55="verify-address"
+alias secret-scan="scan-secrets"
+alias secrets="scan-secrets"
+
+# MCP-Aligned Security Functions
+audit() {
+    echo -e "\033[38;5;51m🔍 Running Comprehensive Mac Security Audit...\033[0m"
+    bash "${IRONMAC_HOME}/modules/audit.sh" "$@"
+}
+
+verify-address() {
+    local addr="${1:-}"
+    if [[ -z "$addr" ]]; then
+        echo -e "\033[38;5;214mUsage:\033[0m verify-address <crypto_address>"
+        echo "Validates EVM (EIP-55 checksum & poisoning check), Solana (Base58), and Bitcoin."
+        return 1
+    fi
+
+    # Check EVM (0x + 40 hex)
+    if [[ "$addr" =~ ^0x[a-fA-F0-9]{40}$ ]]; then
+        local raw="${addr#0x}"
+        local lower="0x${(L)raw}"
+        local upper="0x${(U)raw}"
+        local checksummed=""
+
+        # Compute EIP-55 Checksum via cast or node
+        if command -v cast >/dev/null 2>&1; then
+            checksummed=$(cast --to-checksum-address "$addr" 2>/dev/null || true)
+        elif command -v node >/dev/null 2>&1; then
+            checksummed=$(node -e 'const c=require("node:crypto"); const a=process.argv[1].toLowerCase().replace(/^0x/,""); const h=c.createHash("keccak-256").update(a).digest("hex"); console.log("0x"+a.split("").map((x,i)=>parseInt(h[i],16)>=8?x.toUpperCase():x).join(""));' "$addr" 2>/dev/null || true)
+        fi
+
+        echo -e "\033[1;38;5;51m[EVM Address Detected]\033[0m: $addr"
+        if [[ -n "$checksummed" ]]; then
+            if [[ "$addr" == "$checksummed" ]]; then
+                echo -e "  • \033[38;5;82m✓ [PASS] Valid EIP-55 Mixed-Case Checksum.\033[0m"
+            elif [[ "$addr" == "$lower" || "$addr" == "$upper" ]]; then
+                echo -e "  • \033[38;5;214m⚠️  [WARN] Valid hex, but missing EIP-55 checksum capitalization!\033[0m"
+                echo -e "  • Checksummed: \033[1;38;5;82m$checksummed\033[0m"
+            else
+                echo -e "  • \033[38;5;196m❌ [FAIL] Corrupted / Invalid EIP-55 Checksum! Possible typo or spoof!\033[0m"
+                echo -e "  • Expected:   \033[1;38;5;82m$checksummed\033[0m"
+            fi
+        else
+            echo -e "  • \033[38;5;82m✓ [PASS] Valid 40-hex format.\033[0m"
+        fi
+
+        if [[ "$addr" =~ ^0x0{6,} ]]; then
+            echo -e "  • \033[1;38;5;196m⚠️  [ALERT] Multiple leading zeros detected (Vanity / Poisoning Pattern)!\033[0m"
+            echo -e "    Verify against address-poisoning spoof attacks before transferring funds."
+        fi
+        return 0
+    fi
+
+    # Check Solana (Base58, 32-44 characters)
+    if [[ "$addr" =~ ^[1-9A-HJ-NP-Za-km-z]{32,44}$ ]]; then
+        echo -e "\033[1;38;5;51m[Solana Address Detected]\033[0m: $addr"
+        echo -e "  • \033[38;5;82m✓ [PASS] Valid Solana Base58 format (32-44 chars).\033[0m"
+        return 0
+    fi
+
+    # Check Bitcoin (Legacy 1, P2SH 3, SegWit/Taproot bc1)
+    if [[ "$addr" =~ ^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{25,62}$ ]]; then
+        echo -e "\033[1;38;5;51m[Bitcoin Address Detected]\033[0m: $addr"
+        echo -e "  • \033[38;5;82m✓ [PASS] Valid Bitcoin address format.\033[0m"
+        return 0
+    fi
+
+    echo -e "\033[38;5;196m❌ [INVALID] Does not match recognized EVM, Solana, or Bitcoin address format.\033[0m"
+    return 1
+}
+
+scan-secrets() {
+    local target="${1:-.}"
+    if [[ ! -e "$target" ]]; then
+        echo -e "\033[38;5;196mError:\033[0m Target path not found: $target"
+        return 1
+    fi
+    echo -e "\033[38;5;51m🔍 Scanning for unencrypted secrets in:\033[0m $target"
+    python3 -c "
+import os, sys, re
+
+target = sys.argv[1]
+HEX_KEY_REGEX = re.compile(r'(?:0x)?[0-9a-fA-F]{64}')
+SECRET_ENV_REGEX = re.compile(r'(?:PRIVATE_KEY|MNEMONIC|SEED_PHRASE|API_KEY|SECRET)\s*=\s*[\'\"]?([^\s\'\"]+)[\'\"]?', re.IGNORECASE)
+
+findings = []
+
+def scan_file(fpath):
+    if fpath.endswith(('.lock', '.min.js', '.png', '.jpg', '.pdf', '.svg', '.bin')):
+        return
+    try:
+        with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
+            for idx, line in enumerate(f, 1):
+                clean = line.strip()
+                if not clean or clean.startswith('#') or clean.startswith('//'):
+                    continue
+                if HEX_KEY_REGEX.search(line):
+                    findings.append((fpath, idx, '64-HEX Private Key Candidate', clean[:60]))
+                elif SECRET_ENV_REGEX.search(line):
+                    findings.append((fpath, idx, 'Sensitive Environment Secret', clean[:60]))
+    except Exception:
+        pass
+
+if os.path.isfile(target):
+    scan_file(target)
+elif os.path.isdir(target):
+    for root, dirs, files in os.walk(target):
+        dirs[:] = [d for d in dirs if d not in ('node_modules', '.git', '.ironmac_backup', '__pycache__')]
+        for file in files:
+            scan_file(os.path.join(root, file))
+
+if not findings:
+    print('\033[38;5;82m✓ CLEAN:\033[0m No plaintext private keys or sensitive variables found.')
+else:
+    print(f'\033[38;5;196m⚠️  FOUND {len(findings)} EXPOSED SECRET(S):\033[0m')
+    for fpath, line, stype, snippet in findings:
+        print(f'  • \033[1m{fpath}:{line}\033[0m [{stype}]\n    Snippet: \033[38;5;214m{snippet}...\033[0m')
+    print('\n\033[38;5;196m[!] DO NOT commit or transmit these files. Import keys into encrypted keystores:\033[0m')
+    print('    \033[38;5;51mcast wallet import <name> -i\033[0m')
+" "$target"
+}
+
+panic() {
+    local reason="${1:-Manual trigger from inside IronVault console}"
+    echo -e "\033[38;5;196m🚨 Triggering IronMac Emergency Air-Gap Protocol...\033[0m"
+    bash "${IRONMAC_HOME}/modules/panic.sh" trigger "$reason"
+}
 
 # 5. Dual-Space Navigation
 vault() {
@@ -309,12 +439,16 @@ help() {
     echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51m↑ / ↓ Arrow Keys\033[0m                   In-memory prefix history search  \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mTab\033[0m                                Ephemeral autocompletion menu    \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
-    echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;214m◈ DEFENSIVE TELEMETRY & CONTROLS\033[0m                                      \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;214m◈ DEFENSIVE TELEMETRY & CONTROLS (MCP ALIGNED)\033[0m                       \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51maudit\033[0m                              Live macOS security posture audit\033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mverify-address <addr>\033[0m              EIP-55 checksum & poison detector\033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mscan-secrets [path]\033[0m                Scan files for exposed 64-hex key\033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mhud / status\033[0m                       Display live tactical telemetry  \033[38;5;242m│\033[0m"
-    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mvault-browser\033[0m                      Launch isolated Web3 browser     \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mairgap [on|off|status]\033[0m             Instant Wi-Fi hardware killswitch\033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mclip-guard [status|test]\033[0m           Clipboard swap sentry & wipe     \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mtrap [status|test]\033[0m                 Anti-AMOS canary sentry daemon   \033[38;5;242m│\033[0m"
-    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mpanic\033[0m                              Emergency air-gap kill switch    \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mpanic [reason]\033[0m                     Emergency air-gap kill switch    \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mvault-browser\033[0m                      Launch isolated Web3 browser     \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;196m⚠️  TERMINATION PROTOCOL\033[0m                                               \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    Type \033[1m'exit'\033[0m or press \033[1mCtrl+D\033[0m. All keys and memory artifacts will be     \033[38;5;242m│\033[0m"
