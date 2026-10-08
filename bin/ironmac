@@ -72,7 +72,7 @@ interactive_menu() {
         1) bash "${SOURCE_DIR}/modules/audit.sh" ;;
         2) bash "${SOURCE_DIR}/modules/harden.sh" ;;
         3) bash "${SOURCE_DIR}/modules/vault_browser.sh" ;;
-        4) bash "${SOURCE_DIR}/modules/console.sh" ;;
+        4) exec bash "${SOURCE_DIR}/modules/console.sh" ;;
         5) bash "${SOURCE_DIR}/modules/trap.sh" start ;;
         6) bash "${SOURCE_DIR}/modules/clip_guard.sh" start ;;
         7) bash "${SOURCE_DIR}/modules/panic.sh" trigger ;;
@@ -103,7 +103,7 @@ case "${CMD}" in
         bash "${SOURCE_DIR}/modules/vault_browser.sh"
         ;;
     console)
-        bash "${SOURCE_DIR}/modules/console.sh"
+        exec bash "${SOURCE_DIR}/modules/console.sh"
         ;;
     trap)
         bash "${SOURCE_DIR}/modules/trap.sh" "${2:-status}"
