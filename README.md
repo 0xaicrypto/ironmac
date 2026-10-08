@@ -1,7 +1,8 @@
 # 🛡️ IronMac
 
 > **Hardened Web3 & Crypto Workstation for macOS.**  
-> Defend against macOS infostealers (AMOS), eliminate plaintext shell history key leaks, deploy active canary honeypots, and isolate high-value transaction signing into auditable clean-room environments.
+> Defend against macOS infostealers (AMOS), eliminate plaintext shell history key leaks, deploy active canary honeypots, and isolate high-value transaction signing into auditable clean-room environments.  
+> 📖 **Comprehensive Guide:** See the [IronMac User Manual (MANUAL.md)](MANUAL.md) for full operational documentation.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: macOS](https://img.shields.io/badge/Platform-macOS%2013%2B-orange.svg)]()
@@ -13,6 +14,7 @@
 
 ## 📑 Table of Contents
 
+- [📖 Full User Manual (MANUAL.md)](MANUAL.md)
 - [Why IronMac?](#-why-ironmac)
 - [Threat Model & Security Matrix](#-threat-model--security-matrix)
 - [Key Features](#-key-features)
