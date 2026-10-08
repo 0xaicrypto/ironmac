@@ -36,6 +36,9 @@ else
 fi
 
 chmod +x "${INSTALL_DIR}/bin/ironmac" "${INSTALL_DIR}/modules/"*.sh
+if [[ -f "${INSTALL_DIR}/mcp/dist/index.js" ]]; then
+    chmod +x "${INSTALL_DIR}/mcp/dist/index.js"
+fi
 
 # Link to ~/.local/bin or /usr/local/bin
 BIN_DIR="${HOME}/.local/bin"
@@ -78,6 +81,7 @@ echo ""
 echo "Essential commands to try right now:"
 echo -e "  • ${BOLD}ironmac console${RESET}       -> Launch zero-trace RAM terminal with EVM & Starknet wallets"
 echo -e "  • ${BOLD}ironmac vault-browser${RESET} -> Launch isolated DeFi transaction browser"
+echo -e "  • ${BOLD}ironmac mcp${RESET}           -> Run Model Context Protocol server for AI Agents (Cursor/Claude)"
 echo -e "  • ${BOLD}ironmac audit${RESET}         -> Re-audit your Mac's security posture"
 echo -e "  • ${BOLD}ironmac harden${RESET}        -> Re-apply system security baselines"
 echo ""

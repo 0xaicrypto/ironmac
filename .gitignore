@@ -26,3 +26,7 @@ Temporary Items
 # Local test / debug logs
 *.log
 .ironmac_backup/
+
+# Node / TypeScript
+node_modules/
+*.tsbuildinfo

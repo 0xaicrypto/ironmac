@@ -24,6 +24,12 @@
   - [5. Active Anti-AMOS Honeypot Tripwire](#5--active-anti-amos-honeypot-tripwire-early-warning-alarm)
   - [6. Clipboard Protection & Key Auto-Purge](#6--clipboard-protection--30-second-key-auto-purge)
   - [7. Emergency Air-Gap Panic Protocol](#7--emergency-air-gap-panic-protocol)
+- [🤖 AI Agent Ecosystem & MCP Integration](#-ai-agent-ecosystem--mcp-integration)
+  - [1. The AI Agent Threat Model in Web3](#1-the-ai-agent-threat-model-in-web3)
+  - [2. Dual Architecture: Guardrail + Autonomous Control Plane](#2-dual-architecture-guardrail--autonomous-control-plane)
+  - [3. Model Context Protocol (MCP) Tools Reference](#3-model-context-protocol-mcp-tools-reference)
+  - [4. Client Setup (Cursor, Claude Desktop, Antigravity)](#4-client-setup-cursor-claude-desktop-antigravity)
+  - [5. Autonomous Agent Workflow Example](#5-autonomous-agent-workflow-example)
 - [Vault Browser vs. Vault Console: Key Differences](#-architectural-distinction-vault-browser-vs-vault-console)
 - [Quick Start & Installation](#-quick-start--installation)
 - [Command Reference](#-command-reference)
@@ -41,6 +47,7 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 - **Plaintext Terminal History Leaks:** Running `cast wallet import --private-key 0x...`, setting `export PRIVATE_KEY=...`, or generating keypairs permanently commits raw private keys to `~/.zsh_history` in plaintext.
 - **Unhardened Network Defaults:** Standard macOS leaves the Application Firewall off, stealth mode disabled, and remote Apple Events available on local networks.
 - **Browser Extension Cross-Contamination:** Mixing daily web surfing (social media, untrusted downloads, translation extensions) with high-value DeFi signing exposes wallet extension RPC providers to malicious injection.
+- **AI Coding Agent Blind Spots:** Granting AI agents (Cursor, Claude Code, Antigravity) filesystem and shell access exposes private keys if an agent encounters prompt injections in untrusted repositories or malicious npm/pip dependencies.
 
 **IronMac solves these vectors through a 100% open-source, auditable hardening toolkit and intrusion prevention suite that transforms your MacBook into a dedicated crypto fortress.**
 
@@ -59,6 +66,9 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 | **Clipboard Address Substitution** | Any background app can overwrite pasteboard | Real-time address swap detector (`ironmac clip-guard`) |
 | **Lingering Private Keys in Clipboard** | Sensitive keys retained in memory indefinitely | 30-second TTL auto-purge for private keys & seed phrases |
 | **Accidental Malware / Phishing Execution** | Malware connects outbound to exfiltrate keys | Instant hardware air-gap Panic Button (`ironmac panic`) |
+| **AI Agent Prompt Injection & Keystore Scraping** | AI agents with bash access can read keystores and `.env` | Active canary tripwire alarm + RAM disk isolation + Secret scanner |
+| **Address Poisoning & LLM Hallucinations** | Agents execute transfers to visually similar or poisoned addresses | EIP-55 checksum & vanity/poison pattern detection MCP tool |
+| **Autonomous Agent Runaway / Network Exfiltration** | Rogue or compromised agent executes outbound network calls | Hardware air-gap isolation (`toggle_airgap`) & panic killswitch |
 
 ---
 
@@ -72,8 +82,9 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 - **📋 Clipboard Guard:** Detects silent address swapping trojans (EVM, Solana, Bitcoin) and automatically purges copied private keys and seed phrases after a 30-second TTL.
 - **🚨 Emergency Air-Gap Panic Button:** Instant kill switch (`ironmac panic`) that powers off Wi-Fi, purges the clipboard, and shuts down all browsers and communication apps during suspected malware execution.
 - **🌐 Isolated "Vault" Browser Profile:** Spawns a hardened, telemetry-free Brave/Chrome profile stored in an isolated directory specifically dedicated to wallet extensions and DeFi transactions.
+- **🤖 Native TypeScript Model Context Protocol (MCP) Server:** Exposes a high-performance, type-safe security control plane (`ironmac mcp`) directly to AI coding assistants (Claude Desktop, Cursor, Antigravity, Cline, Windsurf) and autonomous on-chain agents. Agents can query system audit postures, verify crypto address checksums and poison patterns, scan codebases for leaked 64-hex private keys, verify canary tripwires, and trigger emergency network killswitches.
 - **📦 Curated Web3 Toolchain (via Brewfile):** Installs verified developer toolchains (Foundry, Rust, Solana CLI, Docker/OrbStack) and security utilities (LuLu firewall, hardware wallet tools) safely.
-- **💯 Zero-Trust & Zero Binaries:** Every line is written in transparent, clean Shell/Homebrew scripts. No black-box binaries, no telemetry, no tracking.
+- **💯 Zero-Trust & Zero Binaries:** Every line is written in transparent, clean Shell/TypeScript scripts. No black-box binaries, no telemetry, no tracking.
 
 ---
 
@@ -212,6 +223,209 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 
 ---
 
+## 🤖 AI Agent Ecosystem & MCP Integration
+
+Modern Web3 developers, quant researchers, and crypto founders increasingly pair-program with AI coding assistants (**Cursor**, **Claude Code**, **Antigravity**, **Cline**) and deploy autonomous on-chain agents (**AI hedge funds, autonomous arbitrage bots, automated liquidators**). 
+
+However, AI agents introduce unprecedented security attack surfaces to macOS workstations. IronMac provides a dual-layer defense matrix and a native **TypeScript Model Context Protocol (MCP)** server to bridge autonomous intelligence with workstation-grade security.
+
+```
+       ┌─────────────────────────────────────────────────────────────┐
+       │             AI Agent Ecosystem (Cursor / Claude / Antigravity)│
+       └──────────────────────────────┬──────────────────────────────┘
+                                      │ stdio (JSON-RPC)
+                                      ▼
+       ┌─────────────────────────────────────────────────────────────┐
+       │         IronMac Native TypeScript MCP Server (`ironmac mcp`)  │
+       │   [Zero Binary • Type-Safe Zod Schemas • Instant Telemetry]  │
+       └───────┬──────────────┬──────────────┬──────────────┬────────┘
+               │              │              │              │
+       ┌───────▼──────┐┌──────▼──────┐┌──────▼──────┐┌──────▼────────┐
+       │  Audit System││Verify Crypto││ Scan Code   ││Hardware Air-Gap│
+       │  & Gatekeeper││Address & EIP││ for Private ││ & Emergency   │
+       │  Postures    ││55 Checksums ││ Key Leaks   ││ Panic Switch  │
+       └──────────────┘└─────────────┘└─────────────┘└───────────────┘
+```
+
+---
+
+### 1. The AI Agent Threat Model in Web3
+
+| Vector | Attack Description | IronMac Defense |
+| :--- | :--- | :--- |
+| **Indirect Prompt Injection** | An untrusted GitHub repository, README, or smart contract audited by an AI agent contains hidden prompts instructing the agent to dump `~/.ethereum/keystore` or `.env`. | **Canary Honeypot Decoys (`ironmac trap`)**: If the agent attempts to read canary files, an immediate alarm sounds and notifies the developer before exfiltration occurs. |
+| **Plaintext Key Leaks in Prompts** | Developers paste `.env` files or CLI outputs containing private keys into LLM context windows, sending raw keys to external cloud models. | **In-Memory RAM Console (`ironmac console`)**: Keys generated via `cast wallet new` live exclusively in RAM; `scan_secrets` MCP tool detects exposed keys prior to context ingestion. |
+| **Address Poisoning & Vanity Collisions** | LLMs hallucinate similar-looking hex addresses or fall victim to address poisoning attacks where transfer targets are replaced with visually identical vanity hashes. | **EIP-55 Checksum & Poison Validator (`verify_crypto_address`)**: Verifies mixed-case EIP-55 checksums, flags unchecksummed addresses, and detects vanity/zero-address poisoning patterns. |
+| **Malicious Package Reconnaissance** | An agent installs a compromised npm or Python package that initiates background socket probes or scans for open ports. | **macOS Stealth Firewall (`ironmac harden`)**: Drops unsolicited ICMP pings, closes unauthenticated ports, and prevents local network probing. |
+| **Autonomous Agent Runaway** | An autonomous on-chain trading agent experiences an infinite loop or anomalous network activity. | **Hardware Air-Gap Kill Switch (`toggle_airgap` / `ironmac panic`)**: Programmatic emergency power-off for the hardware network interface (`en0`). |
+
+---
+
+### 2. Dual Architecture: Guardrail + Autonomous Control Plane
+
+IronMac supports two symbiotic modes for AI agents:
+
+#### Dimension A: External Guardrail (Protecting the Mac *from* Coding Agents)
+When using agentic coding tools (Cursor Agent, Claude Code, Cline), you grant the AI model bash execution and filesystem read/write privileges:
+1. **Canary Tripwire:** IronMac arms realistic decoy keystores in standard infostealer targets (`~/.ethereum/keystore/UTC--canary-ironmac-trap.json`). Any agent tricked by prompt injection into reading or exfiltrating keys trips the `kqueue` sentry, firing an instant siren and desktop banner.
+2. **Ephemeral RAM Isolation:** Sensitive private key generation, signing, and secret deployment occur in `/Volumes/IronVault/`, completely isolated from your project workspace and git repository.
+3. **Clipboard Key Auto-Wipe:** Copied keys and seed phrases are purged by `ironmac clip-guard` within 30 seconds, preventing background agents from reading lingering clipboard memory.
+
+#### Dimension B: Autonomous Security Control Plane (Empowering Agents *with* IronMac Defenses)
+When running or developing autonomous Web3 agents, IronMac provides an official **Model Context Protocol (MCP)** server written in TypeScript. Agents can inspect system security, validate cryptographic recipient addresses, audit generated code for plaintext keys, and isolate network interfaces during high-value signing.
+
+---
+
+### 3. Model Context Protocol (MCP) Tools Reference
+
+The IronMac MCP server runs over standard `stdio` and exposes 6 high-integrity tools:
+
+#### 1. `audit_system_security`
+* **Description:** Runs a live security audit of macOS host defenses.
+* **Returns:** JSON object containing:
+  - `filevault`: Encryption status (Enabled/Disabled).
+  - `sip`: System Integrity Protection status.
+  - `firewall`: Application Firewall state & Stealth Mode.
+  - `gatekeeper`: Gatekeeper verification status.
+  - `ssh_remote_login`: Remote Login service status (should be Disabled).
+  - `guest_account`: Guest user account status.
+  - `score`: Overall workstation defense score (0–100).
+  - `passed`: Boolean indicating if the workstation meets minimum Web3 defense baselines.
+
+#### 2. `verify_crypto_address`
+* **Description:** Performs rigorous cryptographic format, checksum, and address poisoning validation before transaction execution.
+* **Parameters:**
+  - `address` (string, required): The recipient address to verify.
+  - `expected_chain` (enum: `"evm"` | `"solana"` | `"bitcoin"` | `"auto"`, default: `"auto"`).
+* **Security Checks:**
+  - **EIP-55 Checksum:** Validates mixed-case capitalization. Flags all-lowercase addresses as warnings and invalid mixed-case as checksum errors.
+  - **Address Poisoning Detection:** Checks for repetitive zero-address patterns (`0x000...000`) and vanity collision patterns.
+  - **Solana:** Validates Base58 character set and length (32–44 characters).
+  - **Bitcoin:** Validates Legacy (`1...`), P2SH (`3...`), SegWit (`bc1q...`), and Taproot (`bc1p...`) formats.
+
+#### 3. `toggle_airgap`
+* **Description:** Enables or disables physical network isolation by toggling the macOS Wi-Fi interface (`en0`).
+* **Parameters:**
+  - `action` (enum: `"on"` | `"off"` | `"status"` | `"toggle"`, required): `"on"` disables Wi-Fi (air-gapped), `"off"` restores Wi-Fi connectivity.
+* **Use Case:** Allows autonomous agents to enforce a hardware air-gap during offline signing and restore connectivity only when broadcasting pre-signed transactions.
+
+#### 4. `get_defense_telemetry`
+* **Description:** Queries real-time operational status of all active IronMac daemons and protective environments.
+* **Returns:**
+  - `honeypot_sentry`: `active` or `inactive` (Anti-AMOS canary tripwire daemon).
+  - `clip_guard`: `active` or `inactive` (Clipboard address-swap detector & 30s auto-purge).
+  - `ram_vault`: Mount state of `/Volumes/IronVault/`.
+  - `network`: Hardware interface (`en0`) state (Online / Air-Gapped).
+
+#### 5. `scan_secrets`
+* **Description:** Recursively scans a file or directory for unencrypted private keys, mnemonics, and sensitive environment variables before code is committed or shared.
+* **Parameters:**
+  - `target_path` (string, required): Absolute or relative path to file or directory to scan.
+* **Detection Patterns:**
+  - Raw 64-character hexadecimal private keys (`0x[0-9a-fA-F]{64}`).
+  - Sensitive environment variable definitions (`PRIVATE_KEY=`, `MNEMONIC=`, `WALLET_SECRET=`, `SEED_PHRASE=`).
+  - Solana base58 private key arrays.
+
+#### 6. `trigger_emergency_panic`
+* **Description:** Programmatically activates the IronMac Emergency Air-Gap protocol.
+* **Parameters:**
+  - `reason` (string, required): Audit reason or anomaly description triggering the panic.
+* **Action:** Instantly powers off Wi-Fi, wipes clipboard memory, and logs an emergency containment event.
+
+---
+
+### 4. Client Setup (Cursor, Claude Desktop, Antigravity)
+
+#### Option A: Global CLI Command (Recommended)
+If IronMac is installed globally (`curl ... | bash` or symlinked to `~/.local/bin/ironmac`):
+
+##### 1. Claude Desktop
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "ironmac": {
+      "command": "ironmac",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+##### 2. Cursor (Project or User Settings)
+Create or edit `.cursor/mcp.json` in your project root, or add in **Cursor Settings > Features > MCP**:
+```json
+{
+  "mcpServers": {
+    "ironmac": {
+      "command": "ironmac",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+##### 3. Antigravity / Windsurf / Cline
+Configure the standard MCP stdio connection:
+```json
+{
+  "mcpServers": {
+    "ironmac": {
+      "command": "ironmac",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+#### Option B: Direct Node.js Execution
+If invoking directly from the cloned repository or bundled build:
+```json
+{
+  "mcpServers": {
+    "ironmac": {
+      "command": "node",
+      "args": ["/Users/YOUR_USER/.ironmac/mcp/dist/index.js"]
+    }
+  }
+}
+```
+
+---
+
+### 5. Autonomous Agent Workflow Example
+
+Here is how an autonomous Web3 agent leverages IronMac MCP tools to safely execute an on-chain transfer:
+
+```typescript
+// 1. Agent verifies the recipient address format and EIP-55 checksum
+const addressCheck = await mcp.callTool("verify_crypto_address", {
+  address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+  expected_chain: "evm"
+});
+
+if (!addressCheck.valid || addressCheck.checksum !== "valid") {
+  throw new Error("Rejected: Invalid or unchecksummed recipient address");
+}
+
+// 2. Agent audits local script directory for accidental secret leakage
+const secretAudit = await mcp.callTool("scan_secrets", {
+  target_path: "./scripts"
+});
+
+if (secretAudit.findings.length > 0) {
+  throw new Error(`Rejected: Detected plaintext secrets in ${secretAudit.findings[0].file}`);
+}
+
+// 3. For ultra-high-value operations, enforce hardware air-gap during offline signing
+await mcp.callTool("toggle_airgap", { action: "on" });
+// -> Hardware Wi-Fi (en0) powered off; sign transaction offline
+await mcp.callTool("toggle_airgap", { action: "off" });
+// -> Hardware Wi-Fi restored; broadcast signed transaction to RPC
+```
+
+---
+
 ## ⚖️ Architectural Distinction: Vault Browser vs. Vault Console
 
 | Feature | 🌐 Vault Browser (`ironmac-vault-browser`) | 💻 Vault Console (`ironmac console`) |
@@ -266,6 +480,7 @@ Commands:
   clip-guard     Clipboard address swap detector & 30s key auto-wipe [start|stop|status|clear|test]
   panic          Emergency air-gap: instant Wi-Fi shutdown & threat isolation [trigger|restore]
   tools          Interactive installer for curated Web3 developer & trader tools
+  mcp            Run Model Context Protocol (MCP) server for AI Agents (Cursor/Claude)
   all            Run the complete guided setup wizard
   version        Print IronMac version
   help           Display this help message
@@ -278,6 +493,7 @@ Commands:
 ```mermaid
 flowchart TD
     User([MacBook User]) --> CLI["ironmac CLI"]
+    AIAgent([AI Agents: Cursor / Claude / Antigravity]) -->|"stdio (JSON-RPC)"| MCP["mcp/dist/index.js<br/>(TypeScript MCP Server)"]
     
     subgraph "IronMac Core Engine"
         CLI --> Audit["modules/audit.sh<br/>(FileVault, Firewall, Gatekeeper, SIP)"]
@@ -288,6 +504,12 @@ flowchart TD
         CLI --> Panic["modules/panic.sh<br/>(Instant Air-Gap Kill Switch)"]
         CLI --> VaultBrowser["modules/vault_browser.sh<br/>(Isolated Profile & Sandbox)"]
         CLI --> Web3Tools["modules/web3_tools.sh<br/>(Curated Brewfile & Toolchains)"]
+        CLI --> MCP
+        
+        MCP -->|"Audit & Status"| Audit
+        MCP -->|"Air-Gap & Panic"| Panic
+        MCP -->|"Checksum & Anti-Poison"| AddrEngine["EIP-55 & Poison Engine"]
+        MCP -->|"Code Secret Auditing"| SecretEngine["Secret Scanner"]
     end
     
     subgraph "Protected Workstation State"
