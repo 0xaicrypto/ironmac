@@ -238,6 +238,10 @@ rpc() {
             export ETH_RPC_URL="https://binance.llamarpc.com"
             echo -e "\033[38;5;82m✓ ETH_RPC_URL set to BNB Smart Chain:\033[0m $ETH_RPC_URL"
             ;;
+        mantle|mnt)
+            export ETH_RPC_URL="https://rpc.mantle.xyz"
+            echo -e "\033[38;5;82m✓ ETH_RPC_URL set to Mantle Network:\033[0m $ETH_RPC_URL"
+            ;;
         solana|sol)
             export SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
             echo -e "\033[38;5;82m✓ SOLANA_RPC_URL set to Solana Mainnet:\033[0m $SOLANA_RPC_URL"
@@ -253,7 +257,7 @@ rpc() {
                 [[ -n "${SOLANA_RPC_URL:-}" ]] && echo -e "  • SOLANA_RPC_URL: \033[38;5;82m$SOLANA_RPC_URL\033[0m"
             else
                 echo -e "\033[38;5;242mNo RPC endpoint set in current session.\033[0m"
-                echo -e "Usage: rpc [eth|sepolia|base|arb|op|polygon|bsc|solana|clear]"
+                echo -e "Usage: rpc [eth|sepolia|base|mantle|arb|op|polygon|bsc|solana|clear]"
             fi
             ;;
     esac
@@ -299,7 +303,7 @@ help() {
     echo -e "\033[38;5;242m│\033[0m                                                                         \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m  \033[1;38;5;214m◈ PRODUCTIVITY & HARDWARE CONTROLS\033[0m                                    \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mairgap [on|off|status]\033[0m             Instant Wi-Fi hardware killswitch\033[38;5;242m│\033[0m"
-    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mrpc [eth|base|sepolia|arb|...]\033[0m     Set zero-config chain RPC in RAM \033[38;5;242m│\033[0m"
+    echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mrpc [eth|base|mantle|arb|...]\033[0m   Set zero-config chain RPC in RAM \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mbalance <addr> / block\033[0m             Instant balance & block lookup   \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51mvault / host / finder\033[0m              Switch between RAM disk & host   \033[38;5;242m│\033[0m"
     echo -e "\033[38;5;242m│\033[0m    • \033[38;5;51m↑ / ↓ Arrow Keys\033[0m                   In-memory prefix history search  \033[38;5;242m│\033[0m"
