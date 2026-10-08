@@ -497,7 +497,8 @@ Built purely in native Swift Cocoa / AppKit (`NSStatusBar` & `NSMenu`):
 ironmac app
 
 # Auto-start on boot (optional)
-# Add ~/.ironmac/bin/ironmac-menu to macOS System Settings -> General -> Login Items
+# Add /opt/homebrew/bin/ironmac-menu (or ~/.ironmac/bin/ironmac-menu)
+# to macOS System Settings -> General -> Login Items
 ```
 
 ### 2. Raycast Script Commands (`ironmac raycast`)
