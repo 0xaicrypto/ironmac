@@ -1,7 +1,7 @@
 # 🛡️ IronMac 官方完整使用手册 (User Manual)
 
 > **Fortress-Grade Web3 Workstation & AI Agent Defense Suite for macOS**  
-> 版本：`v0.4.0` | 适用平台：macOS 13.0+ (Ventura / Sonoma / Sequoia / 后续版本) | 架构：Apple Silicon (M1/M2/M3/M4) & Intel x86_64
+> 版本：`v0.5.0` | 适用平台：macOS 13.0+ (Ventura / Sonoma / Sequoia / 后续版本) | 架构：Apple Silicon (M1/M2/M3/M4) & Intel x86_64
 
 ---
 
@@ -634,7 +634,7 @@ async function safeExecuteTransfer(recipient: string, amount: string) {
 
 ```text
        ┌────────────────────────────────────────────────────────┐
-       │ 🛡️ IronMac Fortress v0.4.0                            │
+       │ 🛡️ IronMac Fortress v0.5.0                            │
        │ ● Active Defenses: ARMED                               │
        │ ────────────────────────────────────────────────────── │
        │ ⚡ Launch IronVault Console                        ⌘C   │

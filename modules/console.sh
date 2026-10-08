@@ -45,7 +45,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo ""
-echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONMAC // SECURE VAULT CONSOLE v0.4.0 ]${RESET}${GRAY}────────────────────────┐${RESET}"
+echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONMAC // SECURE VAULT CONSOLE v0.5.0 ]${RESET}${GRAY}────────────────────────┐${RESET}"
 
 # 1. Mount 32MB Ephemeral RAM Disk (if supported)
 RAW_DEV=$(hdiutil attach -nomount ram://65536 2>/dev/null | awk '{print $1}' || true)

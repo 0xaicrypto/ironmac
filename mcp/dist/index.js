@@ -14905,7 +14905,7 @@ async function main() {
   const server = new Server(
     {
       name: "ironmac-mcp",
-      version: "0.4.0"
+      version: "0.5.0"
     },
     {
       capabilities: {

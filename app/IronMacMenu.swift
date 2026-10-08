@@ -153,7 +153,7 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate {
         let clipRunning = isProcessRunning("clip_guard.py")
 
         // 1. Header
-        let header = NSMenuItem(title: "🛡️ IronMac Fortress v0.4.0", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: "🛡️ IronMac Fortress v0.5.0", action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
 
