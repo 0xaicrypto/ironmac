@@ -1,42 +1,76 @@
 # 🛡️ IronMac
 
-> **Turn your MacBook into an ironclad, audit-ready Web3 & Crypto workstation in minutes.**
+> **Hardened Web3 & Crypto Workstation for macOS.**  
+> Defend against macOS infostealers (AMOS), eliminate plaintext shell history key leaks, deploy active canary honeypots, and isolate high-value transaction signing into auditable clean-room environments.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: macOS](https://img.shields.io/badge/Platform-macOS%2013%2B-orange.svg)]()
 [![Arch: Apple Silicon / Intel](https://img.shields.io/badge/Architecture-Apple%20Silicon%20%7C%20Intel-green.svg)]()
-[![Security: Transparent Shell](https://img.shields.io/badge/Code-100%25%20Auditable%20Shell-brightgreen.svg)]()
+[![Code: 100% Auditable Shell](https://img.shields.io/badge/Code-100%25%20Auditable%20Shell-brightgreen.svg)]()
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/0xaicrypto/ironmac/pulls)
+
+---
+
+## 📑 Table of Contents
+
+- [Why IronMac?](#-why-ironmac)
+- [Threat Model & Security Matrix](#-threat-model--security-matrix)
+- [Key Features](#-key-features)
+- [Typical Use Cases & Walkthroughs](#-typical-use-cases--walkthroughs)
+  - [1. Ephemeral "Burner" Wallets](#1--ephemeral-burner-wallets-airdrops--testnet-testing)
+  - [2. Daily Surfing vs. DeFi Signing (Anti-AMOS)](#2-️-segregating-daily-surfing-from-defi-signing-anti-amos-stealer)
+  - [3. Offline Cold Signing for Whales & Multi-Sig](#3--offline-cold-signing-whales--multi-sig-signers)
+  - [4. Public Wi-Fi & Conference Hardening](#4--public-wi-fi--crypto-conference-defense)
+  - [5. Active Anti-AMOS Honeypot Tripwire](#5--active-anti-amos-honeypot-tripwire-early-warning-alarm)
+- [Vault Browser vs. Vault Console: Key Differences](#-architectural-distinction-vault-browser-vs-vault-console)
+- [Quick Start & Installation](#-quick-start--installation)
+- [Command Reference](#-command-reference)
+- [System Architecture](#-system-architecture)
+- [Security & Responsible Disclosure](#-security--responsible-disclosure)
+- [License](#-license)
 
 ---
 
 ## 🎯 Why IronMac?
 
-MacBooks are the undisputed hardware of choice for Web3 founders, developers, and crypto traders. However, **default macOS settings leave critical security gaps for crypto assets**:
+MacBooks are the undisputed hardware of choice for Web3 founders, smart contract engineers, and cryptocurrency traders. However, **default macOS configurations leave critical security vulnerabilities for digital assets**:
 
-- **The Rise of macOS Infostealers (e.g., AMOS / Atomic Stealer):** Malicious `.dmg` or `.pkg` files (disguised as fake Calendly links, Zoom updates, or Web3 game tests) silently harvest MetaMask, Phantom, and browser session cookies from `~/Library/Application Support/...`.
-- **Plaintext Terminal History Leaks:** Running `cast wallet import --private-key 0x...`, export statements, or mnemonic flags permanently writes your sensitive keys into `~/.zsh_history` in plaintext, which stealers immediately harvest.
-- **Unhardened Network Defaults:** Standard macOS often leaves remote login, AirDrop discovery, and local port responses wide open on public Wi-Fi.
-- **Shared Browser Pollution:** Mixing daily web browsing (social media, random links, suspicious extensions) with high-value DeFi signing and cold storage bridging is a recipe for disaster.
-- **Fragmented Web3 Tooling:** Installing and verifying Foundry, Rust, Solana CLI, Docker, and hardware wallet bridges manually often leads to dependency conflicts or typo-squatted malicious packages.
+- **The Surge of macOS Infostealers (e.g., AMOS / Atomic Stealer):** Malicious `.dmg` and `.pkg` installers (distributed via fake Calendly links, Zoom updates, or compromised job interview tests) systematically harvest browser extension storage (`~/Library/Application Support/...`) to exfiltrate MetaMask, Phantom, and session credentials.
+- **Plaintext Terminal History Leaks:** Running `cast wallet import --private-key 0x...`, setting `export PRIVATE_KEY=...`, or generating keypairs permanently commits raw private keys to `~/.zsh_history` in plaintext.
+- **Unhardened Network Defaults:** Standard macOS leaves the Application Firewall off, stealth mode disabled, and remote Apple Events available on local networks.
+- **Browser Extension Cross-Contamination:** Mixing daily web surfing (social media, untrusted downloads, translation extensions) with high-value DeFi signing exposes wallet extension RPC providers to malicious injection.
 
-**IronMac solves this through a 100% auditable, open-source hardening toolkit that transforms your MacBook into a dedicated, fortress-grade crypto workstation.**
+**IronMac solves these vectors through a 100% open-source, auditable hardening toolkit and intrusion prevention suite that transforms your MacBook into a dedicated crypto fortress.**
+
+---
+
+## 🛡️ Threat Model & Security Matrix
+
+| Attack Vector / Threat | macOS Default State | IronMac Defense Mechanism |
+| :--- | :--- | :--- |
+| **AMOS Infostealers** (Fake meeting payloads) | Extension vaults reside in standard hardcoded paths | Physical segregation to `~/Library/.../IronMacVault` + Canary decoys |
+| **Shell History Key Harvesting** | Commands logged to disk in `~/.zsh_history` | Ephemeral RAM console with `HISTFILE=/dev/null` (`ironmac console`) |
+| **Public Wi-Fi Inbound Probing** | Firewall & Stealth mode disabled | Automated baseline hardening (`socketfilterfw`) |
+| **Browser Extension Snooping** | All extensions share browser process privileges | Clean-room browser profile strictly reserved for verified DApps |
+| **SSD Artifact Residue** | Private keys and scratch files written to APFS | Volatile 32MB RAM Disk auto-purged on session termination |
+| **Background Key Directory Scraping** | Silent unauthorized access to keystores | Zero-CPU `kqueue` tripwire sentry firing immediate desktop alarms |
 
 ---
 
 ## ✨ Key Features
 
-- **🔍 Security Health Audit:** Scans your system's FileVault encryption, SIP, Gatekeeper, Application Firewall, and remote sharing services with a clear risk score.
-- **🔒 One-Click Baseline Hardening:** Enables stealth mode, closes unauthenticated ports, blocks unverified remote execution, and configures secure DNS-over-HTTPS.
-- **💻 Zero-Trace Vault Console:** Launches an ephemeral, RAM-backed terminal session (`/Volumes/IronVault`) with shell history completely disabled (`HISTFILE=/dev/null`). All commands and scratch files disappear from memory upon exit.
+- **🔍 Security Health Audit:** Scans your system's FileVault encryption, SIP, Gatekeeper, Application Firewall, and remote sharing services with an instant risk score.
+- **🔒 Automated Baseline Hardening:** One-click enables stealth mode, drops unsolicited ICMP pings, closes unauthenticated ports, and restricts remote automation.
+- **💻 Zero-Trace Vault Console:** Spawns an ephemeral, RAM-backed terminal session (`/Volumes/IronVault`) with shell history completely disabled (`HISTFILE=/dev/null`). All commands and scratch files disappear from memory upon exit.
 - **🪙 Built-in EVM & Starknet CLI Wallets:** Instant, zero-trace wallet generation and transaction signing using Foundry's `cast` (EVM) and `starkli` (Starknet) directly inside the ephemeral RAM Disk.
-- **🪤 Active Anti-AMOS Honeypot Trap:** Deploys decoy canary keystores in standard infostealer search targets (`~/.ethereum/keystore`, `~/.config/solana`, Documents) and runs a zero-CPU `kqueue` sentry daemon that immediately fires audio & desktop alarms when untrusted processes tamper with them.
+- **🪤 Active Anti-AMOS Honeypot Trap:** Deploys decoy canary keystores in standard infostealer targets (`~/.ethereum/keystore`, `~/.config/solana`, Documents) and runs a zero-CPU `kqueue` sentry daemon that immediately fires audio & desktop alarms when untrusted processes tamper with them.
 - **🌐 Isolated "Vault" Browser Profile:** Spawns a hardened, telemetry-free Brave/Chrome profile stored in an isolated directory specifically dedicated to wallet extensions and DeFi transactions.
-- **📦 Curated Web3 Stack (via Brewfile):** Installs verified developer toolchains (Foundry, Rust, Solana CLI, Docker/OrbStack) and security utilities (LuLu firewall, hardware wallet tools) safely.
+- **📦 Curated Web3 Toolchain (via Brewfile):** Installs verified developer toolchains (Foundry, Rust, Solana CLI, Docker/OrbStack) and security utilities (LuLu firewall, hardware wallet tools) safely.
 - **💯 Zero-Trust & Zero Binaries:** Every line is written in transparent, clean Shell/Homebrew scripts. No black-box binaries, no telemetry, no tracking.
 
 ---
 
-## 💡 Typical Use Cases & Examples
+## 💡 Typical Use Cases & Walkthroughs
 
 ### 1. 🪙 Ephemeral "Burner" Wallets (Airdrops & Testnet Testing)
 * **The Risk:** Interacting with new testnets, meme tokens, or claiming airdrops often requires generating quick burner keys. Doing this normally leaves raw private keys in text files and permanently logged in `~/.zsh_history`.
@@ -72,13 +106,9 @@ MacBooks are the undisputed hardware of choice for Web3 founders, developers, an
   # -> Complete physical separation from daily web surfing and malicious downloads
   ```
 
-  > **❓ Will my wallet extensions (MetaMask, Rabby) stay saved?**  
+  > [!NOTE]
+  > **Will my wallet extensions (MetaMask, Rabby) stay saved?**  
   > **Yes, absolutely.** Unlike the ephemeral Vault Console, the Vault Browser is **persistent**. All installed wallet extensions, custom RPCs, and encrypted keystores are securely stored in your dedicated `~/Library/Application Support/IronMacVault/Profile` directory. You do **NOT** need to re-import your seed phrase every time—simply launch `ironmac-vault-browser` and unlock your wallet with your password as usual.
-  >
-  > **Why is this safer than standard Chrome/Brave?**  
-  > 1. **Bypasses Hardcoded Malware Scans:** Infostealers (like AMOS) hardcode default search paths (`~/Library/Application Support/Google/Chrome/Default/...`). They do not inspect IronMac's custom vault directory.  
-  > 2. **Zero Extension Pollution:** Free from daily translation tools, downloaders, and unverified plugins that could leak session keys.  
-  > 3. **Clean-Room Surfing:** Only open verified DApps (Uniswap, Aave, Staking portals), strictly separate from social media surfing.
 
 ### 3. ❄️ Offline Cold Signing (Whales & Multi-Sig Signers)
 * **The Risk:** Signing multi-sig transactions or large transfers on an unhardened, internet-connected machine exposes your keys to memory-scraping malware or clipboard address substitution.
@@ -98,8 +128,8 @@ MacBooks are the undisputed hardware of choice for Web3 founders, developers, an
   # 5. Reconnect Wi-Fi and broadcast the raw signed hex via public RPC
   ```
 
-### 4. ☕ Public Wi-Fi & Crypto Conference Defense (Devcon, EthCC, Token2049)
-* **The Risk:** Airport Wi-Fi and hacker-heavy crypto conferences are hotbeds for automated port scanning, rogue DNS responder attacks, and local network probes.
+### 4. ☕ Public Wi-Fi & Crypto Conference Defense
+* **The Risk:** Airport Wi-Fi and hacker-heavy crypto conferences (Devcon, EthCC, Token2049) are hotbeds for automated port scanning, rogue DNS responder attacks, and local network probes.
 * **The IronMac Way:**
   ```bash
   # 1. Audit your current Mac posture in 5 seconds
@@ -127,26 +157,34 @@ MacBooks are the undisputed hardware of choice for Web3 founders, developers, an
   # -> Instant macOS desktop notification: "🚨 IronMac Honeypot Triggered!"
   ```
 
-### ⚖️ Architectural Distinction: Vault Browser vs. Vault Console
+---
+
+## ⚖️ Architectural Distinction: Vault Browser vs. Vault Console
 
 | Feature | 🌐 Vault Browser (`ironmac-vault-browser`) | 💻 Vault Console (`ironmac console`) |
 | :--- | :--- | :--- |
-| **Data Lifecycle** | **Persistent** (Saved in `~/Library/.../IronMacVault`) | **Ephemeral** (Pure RAM Disk, auto-wiped on exit) |
-| **Wallet Persistence** | **Yes** (MetaMask, Rabby & accounts stay configured) | **No** (Zero trace, keys & history vanish upon `exit`) |
+| **Data Lifecycle** | **Persistent** (Stored in `~/Library/.../IronMacVault`) | **Ephemeral** (Pure RAM Disk, auto-wiped on exit) |
+| **Wallet State** | **Persistent** (MetaMask & accounts stay saved) | **Non-Persistent** (Zero trace, vanishes upon `exit`) |
 | **Primary Use Case** | Daily high-value DeFi trading & portfolio management | Burner airdrop claims, testnet testing & offline cold signing |
 | **Protection Focus** | Bypasses AMOS stealer paths, prevents extension pollution | Prevents `~/.zsh_history` plaintext key leaks & SSD residue |
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start & Installation
 
-Run IronMac directly via curl (you can inspect the script before running):
+### Option 1: One-Line Guided Install & Audit (Recommended)
+
+Run the verified installer directly via curl:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/0xaicrypto/ironmac/main/install.sh | bash
 ```
 
-Or clone and run locally:
+> [!TIP]
+> **Audit Before Running:** You can inspect the installer code prior to execution by running:  
+> `curl -fsSL https://raw.githubusercontent.com/0xaicrypto/ironmac/main/install.sh | less`
+
+### Option 2: Clone and Run Locally
 
 ```bash
 git clone https://github.com/0xaicrypto/ironmac.git
@@ -157,7 +195,7 @@ chmod +x ./bin/ironmac
 
 ---
 
-## 💻 CLI Usage
+## 💻 Command Reference
 
 ```text
 =====================================================
@@ -169,7 +207,7 @@ Usage: ironmac <command> [options]
 Commands:
   audit          Run a comprehensive security audit of your Mac
   harden         Apply recommended security baselines and network stealth
-  vault-browser  Create an isolated, dedicated Web3 wallet browser profile
+  vault-browser  Launch or configure the isolated Web3 wallet browser profile
   console        Launch a zero-trace, ephemeral RAM-backed secure terminal
   trap           Anti-AMOS honeypot decoys & tripwire sentry [start|stop|status|test]
   tools          Interactive installer for curated Web3 developer & trader tools
@@ -180,19 +218,19 @@ Commands:
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ System Architecture
 
 ```mermaid
 flowchart TD
     User([MacBook User]) --> CLI["ironmac CLI"]
     
-    subgraph "IronMac Core Modules"
+    subgraph "IronMac Core Engine"
         CLI --> Audit["modules/audit.sh<br/>(FileVault, Firewall, Gatekeeper, SIP)"]
         CLI --> Harden["modules/harden.sh<br/>(Stealth Mode, Service Lock, TCC Guard)"]
         CLI --> Console["modules/console.sh<br/>(Zero-History & RAM Disk)"]
         CLI --> Trap["modules/trap.sh<br/>(Canary Decoys & kqueue Sentry)"]
         CLI --> VaultBrowser["modules/vault_browser.sh<br/>(Isolated Profile & Sandbox)"]
-        CLI --> Web3Tools["modules/web3_tools.sh<br/>(Curated Brewfile & Dev Stacks)"]
+        CLI --> Web3Tools["modules/web3_tools.sh<br/>(Curated Brewfile & Toolchains)"]
     end
     
     subgraph "Protected Workstation State"
@@ -204,14 +242,15 @@ flowchart TD
     end
 ```
 
-
 ---
 
-## 🛡️ Threat Model & Philosophy
+## 🛡️ Security & Responsible Disclosure
 
-1. **Don't Trust, Verify:** IronMac refuses to distribute compiled binaries for core functionality. Everything is auditable in standard Bash/Zsh scripts.
-2. **Defense in Depth:** Even if one layer fails (e.g. a phishing link is opened), isolated browser sandboxing and outbound firewall rules prevent credential exfiltration.
-3. **Non-Destructive:** IronMac does not break standard macOS features (like iCloud or Xcode) and creates backups of any system configurations it adjusts.
+IronMac adheres to a strict **"Don't Trust, Verify"** philosophy:
+
+1. **No Compiled Binaries:** IronMac core comprises 100% readable, transparent Bash and Python scripts. You can audit every single line.
+2. **Non-Destructive Operations:** IronMac does not disable core macOS services (like iCloud or Xcode) and operates strictly within standard user/system boundaries.
+3. **Reporting Security Issues:** If you identify any security issue or vulnerability in IronMac, please report it via [GitHub Security Advisories](https://github.com/0xaicrypto/ironmac/security/advisories) or by opening a confidential issue.
 
 ---
 
