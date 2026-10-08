@@ -22,6 +22,8 @@
   - [3. Offline Cold Signing for Whales & Multi-Sig](#3--offline-cold-signing-whales--multi-sig-signers)
   - [4. Public Wi-Fi & Conference Hardening](#4--public-wi-fi--crypto-conference-defense)
   - [5. Active Anti-AMOS Honeypot Tripwire](#5--active-anti-amos-honeypot-tripwire-early-warning-alarm)
+  - [6. Clipboard Protection & Key Auto-Purge](#6--clipboard-protection--30-second-key-auto-purge)
+  - [7. Emergency Air-Gap Panic Protocol](#7--emergency-air-gap-panic-protocol)
 - [Vault Browser vs. Vault Console: Key Differences](#-architectural-distinction-vault-browser-vs-vault-console)
 - [Quick Start & Installation](#-quick-start--installation)
 - [Command Reference](#-command-reference)
@@ -54,6 +56,9 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 | **Browser Extension Snooping** | All extensions share browser process privileges | Clean-room browser profile strictly reserved for verified DApps |
 | **SSD Artifact Residue** | Private keys and scratch files written to APFS | Volatile 32MB RAM Disk auto-purged on session termination |
 | **Background Key Directory Scraping** | Silent unauthorized access to keystores | Zero-CPU `kqueue` tripwire sentry firing immediate desktop alarms |
+| **Clipboard Address Substitution** | Any background app can overwrite pasteboard | Real-time address swap detector (`ironmac clip-guard`) |
+| **Lingering Private Keys in Clipboard** | Sensitive keys retained in memory indefinitely | 30-second TTL auto-purge for private keys & seed phrases |
+| **Accidental Malware / Phishing Execution** | Malware connects outbound to exfiltrate keys | Instant hardware air-gap Panic Button (`ironmac panic`) |
 
 ---
 
@@ -64,6 +69,8 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 - **💻 Zero-Trace Vault Console:** Spawns an ephemeral, RAM-backed terminal session (`/Volumes/IronVault`) with shell history completely disabled (`HISTFILE=/dev/null`). All commands and scratch files disappear from memory upon exit.
 - **🪙 Built-in EVM & Starknet CLI Wallets:** Instant, zero-trace wallet generation and transaction signing using Foundry's `cast` (EVM) and `starkli` (Starknet) directly inside the ephemeral RAM Disk.
 - **🪤 Active Anti-AMOS Honeypot Trap:** Deploys decoy canary keystores in standard infostealer targets (`~/.ethereum/keystore`, `~/.config/solana`, Documents) and runs a zero-CPU `kqueue` sentry daemon that immediately fires audio & desktop alarms when untrusted processes tamper with them.
+- **📋 Clipboard Guard:** Detects silent address swapping trojans (EVM, Solana, Bitcoin) and automatically purges copied private keys and seed phrases after a 30-second TTL.
+- **🚨 Emergency Air-Gap Panic Button:** Instant kill switch (`ironmac panic`) that powers off Wi-Fi, purges the clipboard, and shuts down all browsers and communication apps during suspected malware execution.
 - **🌐 Isolated "Vault" Browser Profile:** Spawns a hardened, telemetry-free Brave/Chrome profile stored in an isolated directory specifically dedicated to wallet extensions and DeFi transactions.
 - **📦 Curated Web3 Toolchain (via Brewfile):** Installs verified developer toolchains (Foundry, Rust, Solana CLI, Docker/OrbStack) and security utilities (LuLu firewall, hardware wallet tools) safely.
 - **💯 Zero-Trust & Zero Binaries:** Every line is written in transparent, clean Shell/Homebrew scripts. No black-box binaries, no telemetry, no tracking.
@@ -157,6 +164,38 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
   # -> Instant macOS desktop notification: "🚨 IronMac Honeypot Triggered!"
   ```
 
+### 6. 📋 Clipboard Protection & 30-Second Key Auto-Purge
+* **The Risk:** You copy a private key or 12-word seed phrase to import it into a wallet. It remains in your macOS clipboard indefinitely, readable by any background app or telemetry script. Additionally, clipboard malware can swap copied `0x...` addresses with attacker addresses.
+* **The IronMac Way:**
+  ```bash
+  # 1. Start the Clipboard Guard daemon
+  ironmac clip-guard start
+
+  # 2. When an EVM, Solana, or BTC address is copied, IronMac verifies integrity.
+  # If a rapid address swap occurs, an alarm sounds and the intrusion is logged.
+
+  # 3. When a private key or mnemonic is copied, IronMac initiates a 30-second TTL:
+  # -> Desktop alert: "⚠️ Private key detected. Auto-wiping in 30s."
+  # -> After 30 seconds: Pasteboard is automatically wiped without human intervention.
+  ```
+
+### 7. 🚨 Emergency Air-Gap Panic Protocol
+* **The Risk:** You accidentally ran a suspicious script, opened a fake `.pkg` installer, or suspect an active remote access trojan on your machine.
+* **The IronMac Way:**
+  ```bash
+  # Trigger immediate emergency air-gap
+  ironmac panic
+
+  # In < 1 second:
+  # -> Powers off Wi-Fi hardware interface (en0)
+  # -> Terminates all browsers (Chrome, Brave, Safari) and chat apps (Telegram, Discord, Slack)
+  # -> Wipes pasteboard memory to prevent clipboard exfiltration
+  # -> Locks the screen
+
+  # When the threat is contained, restore connectivity:
+  ironmac panic restore
+  ```
+
 ---
 
 ## ⚖️ Architectural Distinction: Vault Browser vs. Vault Console
@@ -210,6 +249,8 @@ Commands:
   vault-browser  Launch or configure the isolated Web3 wallet browser profile
   console        Launch a zero-trace, ephemeral RAM-backed secure terminal
   trap           Anti-AMOS honeypot decoys & tripwire sentry [start|stop|status|test]
+  clip-guard     Clipboard address swap detector & 30s key auto-wipe [start|stop|status|clear|test]
+  panic          Emergency air-gap: instant Wi-Fi shutdown & threat isolation [trigger|restore]
   tools          Interactive installer for curated Web3 developer & trader tools
   all            Run the complete guided setup wizard
   version        Print IronMac version
@@ -229,6 +270,8 @@ flowchart TD
         CLI --> Harden["modules/harden.sh<br/>(Stealth Mode, Service Lock, TCC Guard)"]
         CLI --> Console["modules/console.sh<br/>(Zero-History & RAM Disk)"]
         CLI --> Trap["modules/trap.sh<br/>(Canary Decoys & kqueue Sentry)"]
+        CLI --> ClipGuard["modules/clip_guard.sh<br/>(Address Swap & TTL Auto-Wipe)"]
+        CLI --> Panic["modules/panic.sh<br/>(Instant Air-Gap Kill Switch)"]
         CLI --> VaultBrowser["modules/vault_browser.sh<br/>(Isolated Profile & Sandbox)"]
         CLI --> Web3Tools["modules/web3_tools.sh<br/>(Curated Brewfile & Toolchains)"]
     end
@@ -237,6 +280,8 @@ flowchart TD
         Harden --> SecOS["Hardened macOS Baseline"]
         Console --> RAMSpace["Ephemeral /Volumes/IronVault/ (RAM)"]
         Trap --> Tripwire["Armed Canary Targets (~/.ethereum, ~/.config/solana)"]
+        ClipGuard --> Pasteboard["Guarded Pasteboard (Anti-Swap & Auto-Purge)"]
+        Panic --> AirGap["Instant Network Isolation (Wi-Fi Dropped)"]
         VaultBrowser --> IsolatedData["~/Library/Application Support/IronMacVault/"]
         Web3Tools --> DevEnv["Verified Toolchains (Foundry, Rust, LuLu)"]
     end
