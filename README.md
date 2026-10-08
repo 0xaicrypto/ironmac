@@ -35,38 +35,70 @@ MacBooks are the undisputed hardware of choice for Web3 founders, developers, an
 
 ---
 
-## 💡 Typical Use Cases
+## 💡 Typical Use Cases & Examples
 
 ### 1. 🪙 Ephemeral "Burner" Wallets (Airdrops & Testnet Testing)
 * **The Risk:** Interacting with new testnets, meme tokens, or claiming airdrops often requires generating quick burner keys. Doing this normally leaves raw private keys in text files and permanently logged in `~/.zsh_history`.
 * **The IronMac Way:**
-  1. Run `ironmac console` to spawn an ephemeral RAM session.
-  2. Run `cast wallet new` (EVM) or `starkli signer create ./signer.json` (Starknet) inside `/Volumes/IronVault`.
-  3. Fund, interact, and transfer assets out.
-  4. Type `exit`. The RAM Disk is instantly purged. No keys, keystores, or command history are ever written to your SSD.
+  ```bash
+  # 1. Spawn a zero-trace memory workspace
+  ironmac console
+
+  # 2. Inside the secure console, generate an ephemeral EVM burner wallet
+  cast wallet new
+  # -> Outputs Address, Private Key, Mnemonic directly in RAM
+
+  # 3. Or generate a Starknet signer keystore inside the RAM disk
+  starkli signer create ./signer.json
+
+  # 4. Perform your testnet claims or transfers, then simply exit:
+  exit
+  # -> Ephemeral RAM Disk is ejected & erased.
+  # -> Zero private keys or commands ever touched your SSD or ~/.zsh_history.
+  ```
 
 ### 2. 🛡️ Segregating "Daily Surfing" from "DeFi Signing" (Anti-AMOS Stealer)
 * **The Risk:** You click a fake Zoom, Calendly, or game-test link on Telegram/Discord. An infostealer (like AMOS) executes and immediately dumps your default Chrome profile where MetaMask or Phantom lives.
 * **The IronMac Way:**
-  1. Use regular Chrome/Brave for daily surfing (Twitter, Telegram web, downloading files, research).
-  2. Launch `ironmac-vault-browser` strictly for high-value DeFi activities (Uniswap, Aave, staking).
-  3. The Vault Profile lives in an isolated directory (`~/Library/Application Support/IronMacVault`) with zero unverified extensions, completely out of reach of daily browser pollution.
+  ```bash
+  # 1. Initialize your isolated Vault Browser profile
+  ironmac vault-browser
+
+  # 2. Launch your clean-room trading browser anytime:
+  ironmac-vault-browser
+  # -> Runs with an isolated data directory: ~/Library/Application Support/IronMacVault/Profile
+  # -> Install only MetaMask/Rabby with zero untrusted extensions
+  # -> Complete physical separation from daily web surfing and malicious downloads
+  ```
 
 ### 3. ❄️ Offline Cold Signing (Whales & Multi-Sig Signers)
 * **The Risk:** Signing multi-sig transactions or large transfers on an unhardened, internet-connected machine exposes your keys to memory-scraping malware or clipboard address substitution.
 * **The IronMac Way:**
-  1. Turn off Wi-Fi.
-  2. Open `ironmac console`.
-  3. Perform your cryptographic signatures offline using `cast wallet sign` inside the memory-only workspace.
-  4. Copy only the resulting signed transaction hex string.
-  5. Exit the console (purging all private keys from memory).
-  6. Reconnect to Wi-Fi and broadcast the signed hex to the network.
+  ```bash
+  # 1. Turn off Wi-Fi on your MacBook
+  # 2. Launch the zero-trace console
+  ironmac console
+
+  # 3. Sign transaction data completely offline
+  cast wallet sign --data "0x8f3c..." --interactive
+  # -> Generates raw cryptographic signature hex string in RAM
+
+  # 4. Exit to destroy private key session from memory
+  exit
+
+  # 5. Reconnect Wi-Fi and broadcast the raw signed hex via public RPC
+  ```
 
 ### 4. ☕ Public Wi-Fi & Crypto Conference Defense (Devcon, EthCC, Token2049)
 * **The Risk:** Airport Wi-Fi and hacker-heavy crypto conferences are hotbeds for automated port scanning, rogue DNS responder attacks, and local network probes.
 * **The IronMac Way:**
-  1. Run `ironmac audit` to review your exposure score.
-  2. Run `ironmac harden` to enforce the Application Firewall, enable **Stealth Mode** (drops all unsolicited ICMP pings and probe scans), and disable unauthenticated remote Apple Events and guest sharing.
+  ```bash
+  # 1. Audit your current Mac posture in 5 seconds
+  ironmac audit
+
+  # 2. Apply stealth baseline (drops ICMP pings, blocks inbound scans, shuts remote ports)
+  ironmac harden
+  ```
 
 ---
 
