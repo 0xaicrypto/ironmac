@@ -75,27 +75,75 @@ setopt NO_INC_APPEND_HISTORY
 setopt NO_APPEND_HISTORY
 
 # 2. Load developer tools from standard paths if available
-for p in /opt/homebrew/bin /usr/local/bin "$HOME/.cargo/bin" "$HOME/.foundry/bin"; do
+for p in /opt/homebrew/bin /usr/local/bin "$HOME/.cargo/bin" "$HOME/.foundry/bin" "$HOME/.starkli/bin"; do
     if [[ -d "$p" && ":$PATH:" != *":$p:"* ]]; then
         export PATH="$p:$PATH"
     fi
 done
 
-# 3. Secure Distinctive Prompt
+# 3. Secure Distinctive Prompt & Aliases
 PROMPT='%F{yellow}[🔒 IRON-CONSOLE]%f %F{cyan}%1~%f ❯ '
 
 alias clear="clear && echo -e '\033[33m[🔒 IRON-CONSOLE: History OFF | RAM-backed Workspace active]\033[0m'"
+alias evm-wallet="cast wallet"
+alias starknet-wallet="starkli"
+
+install-evm-wallet() {
+    echo "Installing Foundry (cast wallet)..."
+    curl -L https://foundry.paradigm.xyz | bash
+    if [[ -x "$HOME/.foundry/bin/foundryup" ]]; then
+        "$HOME/.foundry/bin/foundryup"
+    fi
+    export PATH="$HOME/.foundry/bin:$PATH"
+    echo "✓ Cast wallet installed. Try: cast wallet new"
+}
+
+install-starknet-wallet() {
+    echo "Installing Starkli (Starknet wallet)..."
+    curl -fsSL https://get.starkli.sh | sh
+    if [[ -x "$HOME/.starkli/bin/starkliup" ]]; then
+        "$HOME/.starkli/bin/starkliup"
+    fi
+    export PATH="$HOME/.starkli/bin:$PATH"
+    echo "✓ Starkli installed. Try: starkli signer create ./signer.json"
+}
 EOF
 
 echo ""
 echo -e "${GREEN}[✓] History recording is completely DISABLED (HISTFILE=/dev/null)${RESET}"
 echo -e "${GREEN}[✓] Ephemeral RAM workspace mounted at: ${BOLD}${MOUNT_POINT}${RESET}"
 echo -e "${GREEN}[✓] Clean-room environment initialized${RESET}"
+
+# Check EVM & Starknet tooling
+echo ""
+echo -e "${CYAN}${BOLD}🪙 Built-in Open-Source CLI Wallets:${RESET}"
+for p in /opt/homebrew/bin /usr/local/bin "$HOME/.cargo/bin" "$HOME/.foundry/bin" "$HOME/.starkli/bin"; do
+    if [[ -d "$p" && ":$PATH:" != *":$p:"* ]]; then
+        export PATH="$p:$PATH"
+    fi
+done
+
+if command -v cast >/dev/null 2>&1; then
+    echo -e "  • ${GREEN}EVM (Foundry cast):${RESET} ✓ Ready"
+    echo "    - cast wallet new                    (Generate fresh EVM address & mnemonic in RAM)"
+    echo "    - cast wallet import <name> --interactive (Import private key securely)"
+else
+    echo -e "  • ${YELLOW}EVM (Foundry cast):${RESET} Not installed (type ${BOLD}install-evm-wallet${RESET} to install)"
+fi
+
+if command -v starkli >/dev/null 2>&1; then
+    echo -e "  • ${GREEN}Starknet (Starkli):${RESET} ✓ Ready"
+    echo "    - starkli signer create ./signer.json (Generate encrypted Starknet signer in RAM)"
+    echo "    - starkli account oz init ./acc.json (Setup OpenZeppelin smart account)"
+else
+    echo -e "  • ${YELLOW}Starknet (Starkli):${RESET} Not installed (type ${BOLD}install-starknet-wallet${RESET} to install)"
+fi
+
 echo ""
 echo -e "${YELLOW}⚠️  Safety Notes:${RESET}"
 echo "   - Commands typed here will NEVER be saved to ~/.zsh_history."
-echo "   - Any files created in this workspace will vanish immediately when you exit."
-echo "   - Safe for running 'cast wallet', 'solana keypair', or pasting private keys."
+echo "   - Any keys/files created in this workspace disappear completely upon 'exit'."
+echo "   - To persist a key generated here, explicitly export it to cold storage before exiting."
 echo ""
 echo -e "Type ${BOLD}'exit'${RESET} or press ${BOLD}Ctrl+D${RESET} when finished."
 echo "----------------------------------------------------------"
