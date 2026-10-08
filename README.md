@@ -14,6 +14,7 @@
 MacBooks are the undisputed hardware of choice for Web3 founders, developers, and crypto traders. However, **default macOS settings leave critical security gaps for crypto assets**:
 
 - **The Rise of macOS Infostealers (e.g., AMOS / Atomic Stealer):** Malicious `.dmg` or `.pkg` files (disguised as fake Calendly links, Zoom updates, or Web3 game tests) silently harvest MetaMask, Phantom, and browser session cookies from `~/Library/Application Support/...`.
+- **Plaintext Terminal History Leaks:** Running `cast wallet import --private-key 0x...`, export statements, or mnemonic flags permanently writes your sensitive keys into `~/.zsh_history` in plaintext, which stealers immediately harvest.
 - **Unhardened Network Defaults:** Standard macOS often leaves remote login, AirDrop discovery, and local port responses wide open on public Wi-Fi.
 - **Shared Browser Pollution:** Mixing daily web browsing (social media, random links, suspicious extensions) with high-value DeFi signing and cold storage bridging is a recipe for disaster.
 - **Fragmented Web3 Tooling:** Installing and verifying Foundry, Rust, Solana CLI, Docker, and hardware wallet bridges manually often leads to dependency conflicts or typo-squatted malicious packages.
@@ -26,6 +27,7 @@ MacBooks are the undisputed hardware of choice for Web3 founders, developers, an
 
 - **🔍 Security Health Audit:** Scans your system's FileVault encryption, SIP, Gatekeeper, Application Firewall, and remote sharing services with a clear risk score.
 - **🔒 One-Click Baseline Hardening:** Enables stealth mode, closes unauthenticated ports, blocks unverified remote execution, and configures secure DNS-over-HTTPS.
+- **💻 Zero-Trace Vault Console:** Launches an ephemeral, RAM-backed terminal session (`/Volumes/IronVault`) with shell history completely disabled (`HISTFILE=/dev/null`). All commands and scratch files disappear from memory upon exit.
 - **🌐 Isolated "Vault" Browser Profile:** Spawns a hardened, telemetry-free Brave/Chrome profile stored in an isolated directory specifically dedicated to wallet extensions and DeFi transactions.
 - **📦 Curated Web3 Stack (via Brewfile):** Installs verified developer toolchains (Foundry, Rust, Solana CLI, Docker/OrbStack) and security utilities (LuLu firewall, hardware wallet tools) safely.
 - **💯 Zero-Trust & Zero Binaries:** Every line is written in transparent, clean Shell/Homebrew scripts. No black-box binaries, no telemetry, no tracking.
@@ -64,6 +66,7 @@ Commands:
   audit          Run a comprehensive security audit of your Mac
   harden         Apply recommended security baselines and network stealth
   vault-browser  Create an isolated, dedicated Web3 wallet browser profile
+  console        Launch a zero-trace, ephemeral RAM-backed secure terminal
   tools          Interactive installer for curated Web3 developer & trader tools
   all            Run the complete interactive setup wizard
   version        Print IronMac version
@@ -81,16 +84,19 @@ flowchart TD
     subgraph "IronMac Core Modules"
         CLI --> Audit["modules/audit.sh<br/>(FileVault, Firewall, Gatekeeper, SIP)"]
         CLI --> Harden["modules/harden.sh<br/>(Stealth Mode, Service Lock, TCC Guard)"]
+        CLI --> Console["modules/console.sh<br/>(Zero-History & RAM Disk)"]
         CLI --> VaultBrowser["modules/vault_browser.sh<br/>(Isolated Profile & Sandbox)"]
         CLI --> Web3Tools["modules/web3_tools.sh<br/>(Curated Brewfile & Dev Stacks)"]
     end
     
     subgraph "Protected Workstation State"
         Harden --> SecOS["Hardened macOS Baseline"]
+        Console --> RAMSpace["Ephemeral /Volumes/IronVault/ (RAM)"]
         VaultBrowser --> IsolatedData["~/Library/Application Support/IronMacVault/"]
         Web3Tools --> DevEnv["Verified Toolchains (Foundry, Rust, LuLu)"]
     end
 ```
+
 
 ---
 

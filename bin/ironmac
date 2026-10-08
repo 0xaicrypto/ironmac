@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.1.0"
+VERSION="0.2.0"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 BOLD="\033[1m"
@@ -35,6 +35,7 @@ show_help() {
     echo "  audit          Run a comprehensive security audit of your Mac"
     echo "  harden         Apply recommended security baselines and network stealth"
     echo "  vault-browser  Create an isolated, dedicated Web3 wallet browser profile"
+    echo "  console        Launch a zero-trace, ephemeral RAM-backed secure terminal"
     echo "  tools          Interactive installer for curated Web3 tools (Foundry, LuLu, etc.)"
     echo "  all            Run the complete guided setup wizard"
     echo "  version        Print IronMac version"
@@ -48,17 +49,19 @@ interactive_menu() {
     echo "  1) 🔍 Security Health Audit"
     echo "  2) 🔒 Apply System Hardening Baseline"
     echo "  3) 🌐 Create Isolated Vault Browser Profile"
-    echo "  4) 📦 Install Curated Web3 Tools & Utilities"
-    echo "  5) 🛡️ Run Complete Setup Wizard (All of the above)"
+    echo "  4) 💻 Launch Secure Vault Console (Zero-History & RAM-backed)"
+    echo "  5) 📦 Install Curated Web3 Tools & Utilities"
+    echo "  6) 🛡️ Run Complete Setup Wizard (All of the above)"
     echo "  0) Exit"
     echo ""
-    read -rp "Enter choice [1-5, 0]: " choice
+    read -rp "Enter choice [1-6, 0]: " choice
     case "${choice}" in
         1) bash "${SOURCE_DIR}/modules/audit.sh" ;;
         2) bash "${SOURCE_DIR}/modules/harden.sh" ;;
         3) bash "${SOURCE_DIR}/modules/vault_browser.sh" ;;
-        4) bash "${SOURCE_DIR}/modules/web3_tools.sh" ;;
-        5)
+        4) bash "${SOURCE_DIR}/modules/console.sh" ;;
+        5) bash "${SOURCE_DIR}/modules/web3_tools.sh" ;;
+        6)
            bash "${SOURCE_DIR}/modules/audit.sh"
            bash "${SOURCE_DIR}/modules/harden.sh"
            bash "${SOURCE_DIR}/modules/vault_browser.sh"
@@ -79,6 +82,9 @@ case "${CMD}" in
         ;;
     vault-browser)
         bash "${SOURCE_DIR}/modules/vault_browser.sh"
+        ;;
+    console)
+        bash "${SOURCE_DIR}/modules/console.sh"
         ;;
     tools)
         bash "${SOURCE_DIR}/modules/web3_tools.sh"
