@@ -10,9 +10,12 @@ class Ironmac < Formula
   depends_on "node" => :recommended
 
   def install
-    # Compile native MenuBar companion if swiftc is available
+    # Compile native MenuBar companion and Auth helper if swiftc is available
     if which("swiftc") && (buildpath/"app/IronMacMenu.swift").exist?
       system "swiftc", "-O", "app/IronMacMenu.swift", "-o", "bin/ironmac-menu"
+    end
+    if which("swiftc") && (buildpath/"app/IronMacAuth.swift").exist?
+      system "swiftc", "-O", "app/IronMacAuth.swift", "-o", "bin/ironmac-auth"
     end
 
     # Copy all files into libexec
@@ -21,12 +24,14 @@ class Ironmac < Formula
     # Symlink ironmac CLI to bin
     bin.install_symlink libexec/"bin/ironmac" => "ironmac"
     bin.install_symlink libexec/"bin/ironmac-menu" => "ironmac-menu" if (libexec/"bin/ironmac-menu").exist?
+    bin.install_symlink libexec/"bin/ironmac-auth" => "ironmac-auth" if (libexec/"bin/ironmac-auth").exist?
   end
 
   def post_install
     chmod 0755, libexec/"bin/ironmac"
     chmod 0755, Dir[libexec/"modules/*.sh"]
     chmod 0755, libexec/"bin/ironmac-menu" if (libexec/"bin/ironmac-menu").exist?
+    chmod 0755, libexec/"bin/ironmac-auth" if (libexec/"bin/ironmac-auth").exist?
     chmod 0755, libexec/"mcp/dist/index.js" if (libexec/"mcp/dist/index.js").exist?
   end
 

@@ -33,3 +33,4 @@ node_modules/
 
 # Compiled binaries
 bin/ironmac-menu
+bin/ironmac-auth

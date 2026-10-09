@@ -600,7 +600,7 @@ ai() {
     if [[ -z "$target" ]]; then
         if command -v agy >/dev/null 2>&1 && command -v gemini >/dev/null 2>&1; then
             echo -e "\033[1;38;5;51m[Select AI Engine]\033[0m: 1) Google Antigravity (agy)  2) Google Gemini CLI (gemini)"
-            read -r "choice?Enter 1 or 2 [default: 1]: "
+            read -rp "Enter 1 or 2 [default: 1]: " choice
             echo ""
             if [[ "$choice" == "2" ]]; then
                 target="gemini"
@@ -640,30 +640,127 @@ gemini-ai() {
 }
 
 wallets() {
-    local kdir="${MOUNT_POINT}/keys"
-    if [[ -d "$kdir" ]]; then
-        local found=0
-        for f in "$kdir"/*.json; do
-            [[ -e "$f" ]] || continue
-            found=1
-            break
+    local target_alias="${1:-}"
+
+    local perm_dir="${HOME}/.ironmac/keystores"
+    local ram_dir="${MOUNT_POINT}/keys"
+    local total=0
+
+    echo -e "\033[1;38;5;51m⚡ IronMac Vault Wallets & Keystores:\033[0m"
+
+    # 1. Permanent Keystores (~/.ironmac/keystores/)
+    if [[ -d "$perm_dir" ]]; then
+        for k in "$perm_dir"/*.json; do
+            [[ -e "$k" ]] || continue
+            [[ "$k" == *".keystore.json" ]] && continue
+            local alias="$(basename "$k" .json)"
+            [[ -n "$target_alias" && "$alias" != "$target_alias" ]] && continue
+            local addr="$(grep '"address"' "$k" 2>/dev/null | awk -F'"' '{print $4}')"
+            local chain="$(grep '"chain"' "$k" 2>/dev/null | awk -F'"' '{print $4}')"
+            echo -e "  • \033[1;38;5;214m${alias}\033[0m [${chain:-base}] \033[38;5;141m🔐 (Permanent Keystore / Enclave)\033[0m: \033[38;5;82m${addr}\033[0m"
+            ((total++))
         done
-        if [[ $found -eq 1 ]]; then
-            echo -e "\033[1;38;5;51mActive Vault Wallets in RAMDisk:\033[0m"
-            for k in "$kdir"/*.json; do
-                [[ -e "$k" ]] || continue
-                local alias="$(basename "$k" .json)"
-                local addr="$(grep '"address"' "$k" 2>/dev/null | awk -F'"' '{print $4}')"
-                local chain="$(grep '"chain"' "$k" 2>/dev/null | awk -F'"' '{print $4}')"
-                echo -e "  • \033[1;38;5;214m${alias}\033[0m [${chain:-evm}]: \033[38;5;82m${addr}\033[0m"
-            done
-            echo -e "\033[38;5;242m(Private keys strictly isolated in RAMDisk, never written to disk)\033[0m"
-        else
-            echo "No wallets generated in this RAM session yet. Ask AI or run: cast wallet new"
-        fi
-    else
-        echo "No keys directory found in RAMDisk."
     fi
+
+    # 2. Ephemeral RAMDisk (${MOUNT_POINT}/keys/)
+    if [[ -d "$ram_dir" ]]; then
+        for k in "$ram_dir"/*.json; do
+            [[ -e "$k" ]] || continue
+            [[ "$k" == *".keystore.json" ]] && continue
+            local alias="$(basename "$k" .json)"
+            [[ -n "$target_alias" && "$alias" != "$target_alias" ]] && continue
+            # Avoid duplicate if alias exists in both
+            [[ -f "${perm_dir}/${alias}.json" ]] && continue
+            local addr="$(grep '"address"' "$k" 2>/dev/null | awk -F'"' '{print $4}')"
+            local chain="$(grep '"chain"' "$k" 2>/dev/null | awk -F'"' '{print $4}')"
+            echo -e "  • \033[1;38;5;214m${alias}\033[0m [${chain:-base}] \033[38;5;220m⚡ (RAMDisk Burner)\033[0m: \033[38;5;82m${addr}\033[0m"
+            ((total++))
+        done
+    fi
+
+    if [[ $total -eq 0 ]]; then
+        echo -e "  \033[38;5;242mNo wallets found. Ask AI to create one or run: cast wallet new\033[0m"
+    else
+        echo -e "\033[38;5;242m(To copy private key securely under Touch ID, run: reveal_key <alias>)\033[0m"
+    fi
+}
+
+reveal_key() {
+    local alias="${1:-}"
+    if [[ -z "$alias" ]]; then
+        echo "Usage: reveal_key <alias>"
+        return 1
+    fi
+
+    local perm_dir="${HOME}/.ironmac/keystores"
+    local ram_dir="${MOUNT_POINT}/keys"
+    local meta_file=""
+    local is_perm=0
+
+    if [[ -f "${perm_dir}/${alias}.json" ]]; then
+        meta_file="${perm_dir}/${alias}.json"
+        is_perm=1
+    elif [[ -f "${ram_dir}/${alias}.json" ]]; then
+        meta_file="${ram_dir}/${alias}.json"
+        is_perm=0
+    else
+        echo -e "\033[31mWallet '${alias}' not found in permanent keystores or active RAMDisk.\033[0m"
+        return 1
+    fi
+
+    local auth_bin="/opt/homebrew/Cellar/ironmac/0.6.3/libexec/bin/ironmac-auth"
+    [[ ! -x "$auth_bin" ]] && auth_bin="${HOME}/.ironmac/bin/ironmac-auth"
+    if [[ -x "$auth_bin" ]]; then
+        if ! "$auth_bin" "Authorize exporting private key for '${alias}'" --ticket "${MOUNT_POINT}/.auth_ticket" --ttl 600 >/dev/null 2>&1; then
+            echo -e "\033[31mTouch ID authorization was rejected or cancelled.\033[0m"
+            return 1
+        fi
+    fi
+
+    local pkey=""
+    local is_ks="$(grep '"keystore_file"' "$meta_file" 2>/dev/null | awk -F'"' '{print $4}')"
+    if [[ -n "$is_ks" ]]; then
+        local pass="$(security find-generic-password -a "$alias" -s "ironmac.vault.keystore" -w 2>/dev/null || true)"
+        if [[ -z "$pass" ]]; then
+            echo -e "\033[31mFailed to retrieve encryption key from Apple Keychain.\033[0m"
+            return 1
+        fi
+        local ks_path="${perm_dir}/${alias}.keystore.json"
+        [[ ! -f "$ks_path" ]] && ks_path="${ram_dir}/${alias}.keystore.json"
+        pkey="$(node -e "
+            const fs = require('fs');
+            const crypto = require('crypto');
+            try {
+                const ks = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+                const pass = process.argv[2];
+                const c = ks.crypto || ks.Crypto;
+                const salt = Buffer.from(c.kdfparams.salt, 'hex');
+                const n = c.kdfparams.n || 8192;
+                const r = c.kdfparams.r || 8;
+                const p = c.kdfparams.p || 1;
+                const dklen = c.kdfparams.dklen || 32;
+                const derivedKey = crypto.scryptSync(Buffer.from(pass, 'utf-8'), salt, dklen, { N: n, r, p, maxmem: 128 * 1024 * 1024 });
+                const cipherKey = derivedKey.subarray(0, 16);
+                const iv = Buffer.from(c.cipherparams.iv, 'hex');
+                const decipher = crypto.createDecipheriv('aes-128-ctr', cipherKey, iv);
+                const ciphertext = Buffer.from(c.ciphertext, 'hex');
+                const privKey = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+                process.stdout.write('0x' + privKey.toString('hex'));
+            } catch(e) { process.exit(1); }
+        " "$ks_path" "$pass" 2>/dev/null || true)"
+    else
+        pkey="$(grep '"private_key"' "$meta_file" 2>/dev/null | awk -F'"' '{print $4}')"
+    fi
+
+    if [[ -z "$pkey" || "$pkey" != 0x* ]]; then
+        echo -e "\033[31mFailed to decrypt or extract private key for '${alias}'.\033[0m"
+        return 1
+    fi
+
+    echo -n "$pkey" | pbcopy
+    echo -e "\033[38;5;82m✔ Private key for '${alias}' copied directly to clipboard via Touch ID/Passkey.\033[0m"
+    echo -e "\033[38;5;242m  [Screen display suppressed for anti-shoulder surfing protection]\033[0m"
+    echo -e "\033[38;5;242m  [ClipGuard active: clipboard will auto-purge sensitive key data in 30s]\033[0m"
 }
 EOF
 
@@ -774,7 +871,7 @@ else
         echo -e "${GRAY}│${RESET}  ${BOLD}[3] Classic Zero-Trace Shell${RESET}  • Pure Terminal (Foundry cast, starkli)     ${GRAY}│${RESET}"
         echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ TIP: Set default via 'export IRONMAC_AI=agy' or '--agy' / '--gemini' ]${RESET}${GRAY}──┘${RESET}\n"
 
-        read -r "choice?Select AI engine [1/2/3, default: 1]: "
+        read -rp "Select AI engine [1/2/3, default: 1]: " choice
         echo ""
         case "${choice}" in
             2) SELECTED="gemini" ;;

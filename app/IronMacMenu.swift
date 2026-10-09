@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import LocalAuthentication
 
 class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem!
@@ -289,6 +290,244 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    struct VaultWalletInfo {
+        let alias: String
+        let address: String
+        let chain: String
+        let isKeystore: Bool
+        let filePath: String
+        let isPermanent: Bool
+        let storage: String
+    }
+
+    struct VaultTelemetry {
+        let isRamDiskActive: Bool
+        let volumeName: String
+        let mountPath: String
+        let hasValidTicket: Bool
+        let wallets: [VaultWalletInfo]
+        let permanentCount: Int
+        let ramCount: Int
+    }
+
+    func detectVaultTelemetry() -> VaultTelemetry {
+        let fm = FileManager.default
+        var wallets: [VaultWalletInfo] = []
+        var seenAliases = Set<String>()
+        var permCount = 0
+        var ramCount = 0
+
+        // 1. Scan Permanent Keystores (~/.ironmac/keystores/)
+        let home = fm.homeDirectoryForCurrentUser.path
+        let permDir = "\(home)/.ironmac/keystores"
+        if let permFiles = try? fm.contentsOfDirectory(atPath: permDir) {
+            for f in permFiles where f.hasSuffix(".json") && !f.hasSuffix(".keystore.json") {
+                let fullPath = "\(permDir)/\(f)"
+                guard let data = try? Data(contentsOf: URL(fileURLWithPath: fullPath)),
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+                let alias = (json["alias"] as? String) ?? (f as NSString).deletingPathExtension
+                let address = (json["address"] as? String) ?? "0x..."
+                let chain = (json["chain"] as? String) ?? "base"
+                let isKeystore = json["keystore_file"] != nil
+                seenAliases.insert(alias)
+                permCount += 1
+                wallets.append(VaultWalletInfo(
+                    alias: alias,
+                    address: address,
+                    chain: chain,
+                    isKeystore: isKeystore,
+                    filePath: fullPath,
+                    isPermanent: true,
+                    storage: "Permanent Keystore (~/.ironmac/keystores/)"
+                ))
+            }
+        }
+
+        // 2. Scan Volatile RAMDisk
+        let vols = (try? fm.contentsOfDirectory(atPath: "/Volumes")) ?? []
+        let candidates = vols.filter { $0.hasPrefix("IronVault") }.compactMap { vol -> (name: String, path: String, mtime: Date, keyCount: Int)? in
+            let path = "/Volumes/\(vol)"
+            let keysPath = "\(path)/keys"
+            let keyCount = (try? fm.contentsOfDirectory(atPath: keysPath))?.filter { $0.hasSuffix(".json") && !$0.hasSuffix(".keystore.json") }.count ?? 0
+            guard let attrs = try? fm.attributesOfItem(atPath: path),
+                  let mdate = attrs[.modificationDate] as? Date else { return nil }
+            return (vol, path, mdate, keyCount)
+        }.sorted { (a, b) -> Bool in
+            if a.keyCount > 0 && b.keyCount == 0 { return true }
+            if a.keyCount == 0 && b.keyCount > 0 { return false }
+            return a.mtime > b.mtime
+        }
+
+        let isRamActive = !candidates.isEmpty
+        let best = candidates.first
+        let ironVol = best?.name ?? ""
+        let vaultPath = best?.path ?? ""
+        var hasTicket = false
+
+        if isRamActive {
+            let ticketPath = "\(vaultPath)/.auth_ticket"
+            if fm.fileExists(atPath: ticketPath),
+               let content = try? String(contentsOfFile: ticketPath, encoding: .utf8),
+               let timestamp = Double(content.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                let age = Date().timeIntervalSince1970 - timestamp
+                hasTicket = age >= 0 && age < 600
+            }
+
+            let keysDir = "\(vaultPath)/keys"
+            if let files = try? fm.contentsOfDirectory(atPath: keysDir) {
+                for f in files where f.hasSuffix(".json") && !f.hasSuffix(".keystore.json") {
+                    let fullPath = "\(keysDir)/\(f)"
+                    guard let data = try? Data(contentsOf: URL(fileURLWithPath: fullPath)),
+                          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+                    let alias = (json["alias"] as? String) ?? (f as NSString).deletingPathExtension
+                    if !seenAliases.contains(alias) {
+                        seenAliases.insert(alias)
+                        ramCount += 1
+                        let address = (json["address"] as? String) ?? "0x..."
+                        let chain = (json["chain"] as? String) ?? "base"
+                        let isKeystore = json["keystore_file"] != nil
+                        wallets.append(VaultWalletInfo(
+                            alias: alias,
+                            address: address,
+                            chain: chain,
+                            isKeystore: isKeystore,
+                            filePath: fullPath,
+                            isPermanent: false,
+                            storage: "RAMDisk (Volatile Memory)"
+                        ))
+                    }
+                }
+            }
+        }
+
+        return VaultTelemetry(
+            isRamDiskActive: isRamActive,
+            volumeName: ironVol,
+            mountPath: vaultPath,
+            hasValidTicket: hasTicket,
+            wallets: wallets,
+            permanentCount: permCount,
+            ramCount: ramCount
+        )
+    }
+
+    @objc func copyWalletAddress(_ sender: NSMenuItem) {
+        if let addr = sender.representedObject as? String {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(addr, forType: .string)
+            sendDesktopAlert(title: "Address Copied", message: "Public address copied: \(addr)")
+        }
+    }
+
+    @objc func lockSessionTicket() {
+        let vaultInfo = detectVaultTelemetry()
+        if vaultInfo.isRamDiskActive {
+            let ticketPath = "\(vaultInfo.mountPath)/.auth_ticket"
+            try? FileManager.default.removeItem(atPath: ticketPath)
+            sendDesktopAlert(title: "IronMac Session Locked", message: "Touch ID grace period revoked. Next action requires authentication.")
+            buildMenu()
+        }
+    }
+
+    @objc func revealWalletKeyFromMenu(_ sender: NSMenuItem) {
+        guard let w = sender.representedObject as? VaultWalletInfo else { return }
+
+        let context = LAContext()
+        context.localizedCancelTitle = "Cancel"
+        var error: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
+            sendDesktopAlert(title: "Authentication Failed", message: "Biometric authentication unavailable.")
+            return
+        }
+
+        context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Authorize copying private key for '\(w.alias)' to clipboard") { success, _ in
+            DispatchQueue.main.async {
+                if success {
+                    self.copyKeyToClipboardForWallet(w)
+                } else {
+                    self.sendDesktopAlert(title: "Authentication Cancelled", message: "Touch ID verification was not completed.")
+                }
+            }
+        }
+    }
+
+    func copyKeyToClipboardForWallet(_ w: VaultWalletInfo) {
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: w.filePath)),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            sendDesktopAlert(title: "Key Retrieval Failed", message: "Could not read wallet metadata.")
+            return
+        }
+
+        var privKey = json["private_key"] as? String ?? ""
+
+        if privKey.isEmpty && w.isKeystore {
+            // Retrieve password from Apple Keychain
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
+            process.arguments = ["find-generic-password", "-a", w.alias, "-s", "ironmac.vault.keystore", "-w"]
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            try? process.run()
+            process.waitUntilExit()
+            let outData = pipe.fileHandleForReading.readDataToEndOfFile()
+            let pass = String(data: outData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+            if !pass.isEmpty {
+                let fm = FileManager.default
+                let nodeBin = fm.fileExists(atPath: "/opt/homebrew/bin/node") ? "/opt/homebrew/bin/node" : (fm.fileExists(atPath: "/usr/local/bin/node") ? "/usr/local/bin/node" : "node")
+                let ksFilePath = w.filePath.replacingOccurrences(of: ".json", with: ".keystore.json")
+
+                let nodeProcess = Process()
+                nodeProcess.executableURL = URL(fileURLWithPath: nodeBin)
+                let script = """
+                const fs = require('fs');
+                const crypto = require('crypto');
+                try {
+                  const ks = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+                  const pass = process.argv[2];
+                  const c = ks.crypto || ks.Crypto;
+                  const salt = Buffer.from(c.kdfparams.salt, 'hex');
+                  const n = c.kdfparams.n || 8192;
+                  const r = c.kdfparams.r || 8;
+                  const p = c.kdfparams.p || 1;
+                  const dklen = c.kdfparams.dklen || 32;
+                  const derivedKey = crypto.scryptSync(Buffer.from(pass, 'utf-8'), salt, dklen, { N: n, r, p, maxmem: 128 * 1024 * 1024 });
+                  const cipherKey = derivedKey.subarray(0, 16);
+                  const iv = Buffer.from(c.cipherparams.iv, 'hex');
+                  const decipher = crypto.createDecipheriv('aes-128-ctr', cipherKey, iv);
+                  const ciphertext = Buffer.from(c.ciphertext, 'hex');
+                  const privKey = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+                  process.stdout.write('0x' + privKey.toString('hex'));
+                } catch(e) { process.exit(1); }
+                """
+                nodeProcess.arguments = ["-e", script, ksFilePath, pass]
+                let nPipe = Pipe()
+                nodeProcess.standardOutput = nPipe
+                try? nodeProcess.run()
+                nodeProcess.waitUntilExit()
+
+                if nodeProcess.terminationStatus == 0 {
+                    let keyData = nPipe.fileHandleForReading.readDataToEndOfFile()
+                    privKey = String(data: keyData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                }
+            }
+        }
+
+        if !privKey.isEmpty && privKey.starts(with: "0x") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(privKey, forType: .string)
+            sendDesktopAlert(
+                title: "⚡ Private Key Copied",
+                message: "Private key for '\(w.alias)' copied to clipboard directly. Screen display suppressed for security (anti-shoulder surfing)."
+            )
+        } else {
+            sendDesktopAlert(
+                title: "Key Decryption Failed",
+                message: "Unable to decrypt private key for '\(w.alias)'. Ensure Apple Keychain permission is granted."
+            )
+        }
+    }
+
     func buildMenu() {
         menu.removeAllItems()
 
@@ -312,6 +551,74 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let armItem = NSMenuItem(title: "  ↳ Click to Arm Trap & ClipGuard", action: #selector(startDefenses), keyEquivalent: "")
             armItem.target = self
             menu.addItem(armItem)
+        }
+
+        menu.addItem(NSMenuItem.separator())
+
+        // 2.5. Keystores & Vault Telemetry
+        let vaultInfo = detectVaultTelemetry()
+        let totalWallets = vaultInfo.wallets.count
+
+        if totalWallets > 0 {
+            var summaryParts: [String] = []
+            if vaultInfo.permanentCount > 0 { summaryParts.append("\(vaultInfo.permanentCount) Permanent") }
+            if vaultInfo.ramCount > 0 { summaryParts.append("\(vaultInfo.ramCount) RAMDisk") }
+            let parentItem = NSMenuItem(title: "  🔑 Vault Wallets (\(summaryParts.joined(separator: ", ")))", action: nil, keyEquivalent: "")
+            let walletsMenu = NSMenu()
+            parentItem.submenu = walletsMenu
+
+            for w in vaultInfo.wallets {
+                let shortAddr = w.address.count > 12 ? "\(w.address.prefix(6))...\(w.address.suffix(4))" : w.address
+                let typeIcon = w.isPermanent ? "🔐" : "⚡"
+                let wItem = NSMenuItem(title: "• \(w.alias) [\(w.chain.uppercased())] \(typeIcon): \(shortAddr)", action: nil, keyEquivalent: "")
+                let wSub = NSMenu()
+                wItem.submenu = wSub
+
+                let storageItem = NSMenuItem(title: "  Storage: \(w.storage)", action: nil, keyEquivalent: "")
+                storageItem.isEnabled = false
+                wSub.addItem(storageItem)
+
+                let copyAddrItem = NSMenuItem(title: "📋 Copy Address (\(shortAddr))", action: #selector(copyWalletAddress(_:)), keyEquivalent: "")
+                copyAddrItem.representedObject = w.address
+                copyAddrItem.target = self
+                wSub.addItem(copyAddrItem)
+
+                let revealItem = NSMenuItem(title: "📋 Copy Private Key (Touch ID Required)", action: #selector(revealWalletKeyFromMenu(_:)), keyEquivalent: "")
+                revealItem.representedObject = w
+                revealItem.target = self
+                wSub.addItem(revealItem)
+
+                walletsMenu.addItem(wItem)
+            }
+            menu.addItem(parentItem)
+        } else {
+            let emptyItem = NSMenuItem(title: "  🔑 Vault Wallets: None configured", action: nil, keyEquivalent: "")
+            emptyItem.isEnabled = false
+            menu.addItem(emptyItem)
+        }
+
+        if vaultInfo.isRamDiskActive {
+            let vaultItem = NSMenuItem(title: "● RAMDisk Vault: ACTIVE (\(vaultInfo.volumeName))", action: nil, keyEquivalent: "")
+            vaultItem.isEnabled = false
+            menu.addItem(vaultItem)
+
+            if vaultInfo.hasValidTicket {
+                let ticketItem = NSMenuItem(title: "  ⚡ Touch ID Grace Period: ACTIVE (Unlocked)", action: nil, keyEquivalent: "")
+                ticketItem.isEnabled = false
+                menu.addItem(ticketItem)
+
+                let lockItem = NSMenuItem(title: "  ↳ 🔒 Lock Session Ticket", action: #selector(lockSessionTicket), keyEquivalent: "")
+                lockItem.target = self
+                menu.addItem(lockItem)
+            } else {
+                let ticketItem = NSMenuItem(title: "  🔒 Session Ticket: LOCKED (Touch ID Required)", action: nil, keyEquivalent: "")
+                ticketItem.isEnabled = false
+                menu.addItem(ticketItem)
+            }
+        } else {
+            let vaultItem = NSMenuItem(title: "○ RAMDisk Vault: INACTIVE (Permanent Keystores Active)", action: nil, keyEquivalent: "")
+            vaultItem.isEnabled = false
+            menu.addItem(vaultItem)
         }
 
         menu.addItem(NSMenuItem.separator())

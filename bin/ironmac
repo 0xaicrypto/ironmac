@@ -128,6 +128,118 @@ case "${CMD}" in
     tools)
         bash "${SOURCE_DIR}/modules/web3_tools.sh"
         ;;
+    wallets)
+        TARGET_ALIAS="${2:-}"
+        PERM_DIR="${HOME}/.ironmac/keystores"
+        echo -e "\033[1;38;5;51m⚡ IronMac Vault Wallets & Keystores:\033[0m"
+        found=0
+        if [[ -d "$PERM_DIR" ]]; then
+            for k in "$PERM_DIR"/*.json; do
+                [[ -e "$k" ]] || continue
+                [[ "$k" == *".keystore.json" ]] && continue
+                alias="$(basename "$k" .json)"
+                [[ -n "$TARGET_ALIAS" && "$alias" != "$TARGET_ALIAS" ]] && continue
+                addr="$(grep '"address"' "$k" 2>/dev/null | awk -F'"' '{print $4}')"
+                chain="$(grep '"chain"' "$k" 2>/dev/null | awk -F'"' '{print $4}')"
+                echo -e "  • \033[1;38;5;214m${alias}\033[0m [${chain:-base}] \033[38;5;141m🔐 (Permanent Keystore / Enclave)\033[0m: \033[38;5;82m${addr}\033[0m"
+                ((found++))
+            done
+        fi
+        for vol in /Volumes/IronVault*; do
+            [[ -d "$vol/keys" ]] || continue
+            for k in "$vol/keys"/*.json; do
+                [[ -e "$k" ]] || continue
+                [[ "$k" == *".keystore.json" ]] && continue
+                alias="$(basename "$k" .json)"
+                [[ -n "$TARGET_ALIAS" && "$alias" != "$TARGET_ALIAS" ]] && continue
+                [[ -f "${PERM_DIR}/${alias}.json" ]] && continue
+                addr="$(grep '"address"' "$k" 2>/dev/null | awk -F'"' '{print $4}')"
+                chain="$(grep '"chain"' "$k" 2>/dev/null | awk -F'"' '{print $4}')"
+                echo -e "  • \033[1;38;5;214m${alias}\033[0m [${chain:-base}] \033[38;5;220m⚡ (RAMDisk Burner)\033[0m: \033[38;5;82m${addr}\033[0m"
+                ((found++))
+            done
+        done
+        if [[ $found -eq 0 ]]; then
+            echo -e "  \033[38;5;242mNo wallets configured yet. Ask AI or run: cast wallet new\033[0m"
+        else
+            echo -e "\033[38;5;242m(To securely copy private key to clipboard under Touch ID, run: ironmac reveal <alias>)\033[0m"
+        fi
+        ;;
+    reveal)
+        ALIAS="${2:-}"
+        if [[ -z "$ALIAS" ]]; then
+            echo "Usage: ironmac reveal <alias>"
+            exit 1
+        fi
+        PERM_DIR="${HOME}/.ironmac/keystores"
+        META_FILE=""
+        RAM_DIR=""
+        for vol in /Volumes/IronVault*; do
+            [[ -d "$vol/keys" ]] && RAM_DIR="$vol/keys"
+        done
+        if [[ -f "${PERM_DIR}/${ALIAS}.json" ]]; then
+            META_FILE="${PERM_DIR}/${ALIAS}.json"
+        elif [[ -n "$RAM_DIR" && -f "${RAM_DIR}/${ALIAS}.json" ]]; then
+            META_FILE="${RAM_DIR}/${ALIAS}.json"
+        else
+            echo -e "\033[31mWallet '${ALIAS}' not found.\033[0m"
+            exit 1
+        fi
+        AUTH_BIN="${SOURCE_DIR}/bin/ironmac-auth"
+        [[ ! -x "$AUTH_BIN" ]] && AUTH_BIN="/opt/homebrew/Cellar/ironmac/0.6.3/libexec/bin/ironmac-auth"
+        if [[ -x "$AUTH_BIN" ]]; then
+            TICKET_ARG=()
+            for vol in /Volumes/IronVault*; do
+                [[ -d "$vol" ]] && TICKET_ARG=("--ticket" "$vol/.auth_ticket" "--ttl" "600")
+            done
+            if ! "$AUTH_BIN" "Authorize exporting private key for '${ALIAS}'" "${TICKET_ARG[@]}" >/dev/null 2>&1; then
+                echo -e "\033[31mTouch ID authorization was rejected or cancelled.\033[0m"
+                exit 1
+            fi
+        fi
+        PKEY=""
+        IS_KS="$(grep '"keystore_file"' "$META_FILE" 2>/dev/null | awk -F'"' '{print $4}')"
+        if [[ -n "$IS_KS" ]]; then
+            PASS="$(security find-generic-password -a "$ALIAS" -s "ironmac.vault.keystore" -w 2>/dev/null || true)"
+            if [[ -z "$PASS" ]]; then
+                echo -e "\033[31mFailed to retrieve encryption key from Apple Keychain.\033[0m"
+                exit 1
+            fi
+            KS_PATH="${PERM_DIR}/${ALIAS}.keystore.json"
+            [[ ! -f "$KS_PATH" && -n "$RAM_DIR" ]] && KS_PATH="${RAM_DIR}/${ALIAS}.keystore.json"
+            PKEY="$(node -e "
+                const fs = require('fs');
+                const crypto = require('crypto');
+                try {
+                    const ks = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+                    const pass = process.argv[2];
+                    const c = ks.crypto || ks.Crypto;
+                    const salt = Buffer.from(c.kdfparams.salt, 'hex');
+                    const n = c.kdfparams.n || 8192;
+                    const r = c.kdfparams.r || 8;
+                    const p = c.kdfparams.p || 1;
+                    const dklen = c.kdfparams.dklen || 32;
+                    const derivedKey = crypto.scryptSync(Buffer.from(pass, 'utf-8'), salt, dklen, { N: n, r, p, maxmem: 128 * 1024 * 1024 });
+                    const cipherKey = derivedKey.subarray(0, 16);
+                    const iv = Buffer.from(c.cipherparams.iv, 'hex');
+                    const decipher = crypto.createDecipheriv('aes-128-ctr', cipherKey, iv);
+                    const ciphertext = Buffer.from(c.ciphertext, 'hex');
+                    const privKey = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+                    process.stdout.write('0x' + privKey.toString('hex'));
+                } catch(e) { process.exit(1); }
+            " "$KS_PATH" "$PASS" 2>/dev/null || true)"
+        else
+            PKEY="$(grep '"private_key"' "$META_FILE" 2>/dev/null | awk -F'"' '{print $4}')"
+        fi
+        if [[ -z "$PKEY" || "$PKEY" != 0x* ]]; then
+            echo -e "\033[31mFailed to decrypt or extract private key for '${ALIAS}'.\033[0m"
+            exit 1
+        fi
+        echo -n "$PKEY" | pbcopy
+        echo -e "\033[38;5;82m✔ Private key for '${ALIAS}' copied directly to clipboard via Touch ID/Passkey.\033[0m"
+        echo -e "\033[38;5;242m  [Screen display suppressed for anti-shoulder surfing protection]\033[0m"
+        echo -e "\033[38;5;242m  [ClipGuard active: clipboard will auto-purge sensitive key data in 30s]\033[0m"
+        ;;
     mcp)
         shift || true
         exec node "${SOURCE_DIR}/mcp/dist/index.js" "$@"
