@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.6.1"
+VERSION="0.6.2"
 # Resolve real source directory even if called through symlinks (e.g. ~/.local/bin/ironmac)
 TARGET="${BASH_SOURCE[0]}"
 while [ -L "$TARGET" ]; do
@@ -67,7 +67,7 @@ interactive_menu() {
     echo "  6) 📋 Clipboard Guard (Address Swap Detection & 30s Key Auto-Purge)"
     echo "  7) 🚨 Emergency Panic Air-Gap (Instant Wi-Fi Drop & Threat Isolation)"
     echo "  8) 📦 Install Curated Web3 Tools & Utilities"
-    echo "  9) 🛡️ Run Complete Setup Wizard (All of the above)"
+    echo "  9) ⚡ Run Complete Setup Wizard (All of the above)"
     echo " 10) 🖥️ Launch macOS MenuBar Companion HUD"
     echo " 11) ⚡ Show Raycast Script Command Integrations"
     echo "  0) Exit"
@@ -154,7 +154,7 @@ case "${CMD}" in
 
         nohup "$MENU_BIN" >/dev/null 2>&1 &
         disown $! 2>/dev/null || true
-        echo -e "${GREEN}✓ IronMac MenuBar Companion launched!${RESET} Look for 🛡️ in the top right menu bar."
+        echo -e "${GREEN}✓ IronMac MenuBar Companion launched!${RESET} Look for the fortress shield icon in the top right menu bar."
         ;;
     raycast)
         RAY_DIR="${SOURCE_DIR}/integrations/raycast"
@@ -162,7 +162,7 @@ case "${CMD}" in
         echo -e "Directory: ${BOLD}${RAY_DIR}${RESET}"
         echo ""
         echo "Included Commands:"
-        echo "  • 🛡️ Defense HUD Telemetry   : integrations/raycast/ironmac-hud.sh"
+        echo "  • ⚡ Defense HUD Telemetry   : integrations/raycast/ironmac-hud.sh"
         echo "  • 📶 Toggle Hardware Air-Gap : integrations/raycast/ironmac-airgap.sh"
         echo "  • 🔍 Verify Crypto Address   : integrations/raycast/ironmac-verify-address.sh"
         echo "  • ⚡ Launch IronVault Console : integrations/raycast/ironmac-console.sh"

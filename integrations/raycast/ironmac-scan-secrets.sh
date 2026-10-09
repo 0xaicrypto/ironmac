@@ -19,7 +19,7 @@ if [[ ! -e "$TARGET" ]]; then
 fi
 
 echo "=========================================================="
-echo "          🛡️  IronMac Secret Leak Scanner                 "
+echo "          🔑  IronMac Secret Leak Scanner                 "
 echo "=========================================================="
 echo "Scanning path: $TARGET"
 echo ""

@@ -102,7 +102,7 @@ def main():
             if pending_wipe_text and now >= pending_wipe_deadline:
                 if curr == pending_wipe_text:
                     set_clipboard("")
-                    notify("🛡️ IronMac Clip-Guard", "Sensitive private key/seed automatically purged from clipboard.", sound="Purr")
+                    notify("IronMac Clip-Guard", "Sensitive private key/seed automatically purged from clipboard.", sound="Purr")
                 pending_wipe_text = None
 
             # Skip if clipboard hasn't changed

@@ -15,7 +15,7 @@ RESET="\033[0m"
 
 echo -e "${CYAN}${BOLD}"
 echo "=========================================================="
-echo "          🛡️  IronMac - Web3 Workstation Installer        "
+echo "          ⚡  IronMac - Web3 Workstation Installer        "
 echo "=========================================================="
 echo -e "${RESET}"
 

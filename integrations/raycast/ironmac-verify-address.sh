@@ -19,7 +19,7 @@ if [[ -z "$ADDR" ]]; then
 fi
 
 echo "=========================================================="
-echo "          🛡️  IronMac Address Integrity Verifier          "
+echo "          🔍  IronMac Address Integrity Verifier          "
 echo "=========================================================="
 echo ""
 echo "Input Address: $ADDR"

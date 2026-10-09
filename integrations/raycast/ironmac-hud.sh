@@ -7,7 +7,7 @@
 # @raycast.packageName IronMac
 
 # Optional parameters:
-# @raycast.icon 🛡️
+# @raycast.icon ⚡
 # @raycast.description Display live defensive telemetry (Honey Traps, ClipGuard, RAM Vault, Air-Gap)
 
 IRONMAC_BIN="${HOME}/.local/bin/ironmac"
@@ -19,7 +19,7 @@ if [[ ! -x "$IRONMAC_BIN" ]]; then
 fi
 
 echo "=========================================================="
-echo "          🛡️  IronMac Active Defense Telemetry           "
+echo "          ⚡  IronMac Active Defense Telemetry           "
 echo "=========================================================="
 echo ""
 

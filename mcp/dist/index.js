@@ -15554,7 +15554,7 @@ async function prepareTransaction(args) {
   const cardLines = [
     `
 ${riskColor}\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510${resetColor}`,
-    `${riskColor}\u2502\x1B[0m \x1B[1m\u{1F6E1}\uFE0F  IRONMAC PRE-EXECUTION TRANSACTION CARD\x1B[0m                              ${riskColor}\u2502${resetColor}`,
+    `${riskColor}\u2502\x1B[0m \x1B[1m\u26A1 [IRONMAC // PRE-EXECUTION TRANSACTION CARD]\x1B[0m                        ${riskColor}\u2502${resetColor}`,
     `${riskColor}\u251C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524${resetColor}`,
     `${riskColor}\u2502\x1B[0m \u2022 \x1B[1mSending Vault    \x1B[0m: \x1B[38;5;214m${alias}\x1B[0m (${senderAddress})`,
     `${riskColor}\u2502\x1B[0m \u2022 \x1B[1mNetwork / Chain  \x1B[0m: ${rpcInfo.name} (Chain ID: ${rpcInfo.chain_id})`,
@@ -15712,7 +15712,7 @@ async function main() {
   const server = new Server(
     {
       name: "ironmac-mcp",
-      version: "0.6.1"
+      version: "0.6.2"
     },
     {
       capabilities: {

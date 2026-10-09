@@ -5,8 +5,14 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem!
     let menu = NSMenu()
 
-    // Dynamically detect Wi-Fi interface
-    var wifiDevice: String {
+    // Cached telemetry states for zero-lag instant UI responsiveness
+    private var cachedAirgapped: Bool = false
+    private var cachedTrapRunning: Bool = false
+    private var cachedClipRunning: Bool = false
+    private var isRefreshing: Bool = false
+
+    // Dynamically detect Wi-Fi interface once
+    lazy var wifiDevice: String = {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
         process.arguments = ["-listallhardwareports"]
@@ -28,7 +34,7 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }
         return "en0"
-    }
+    }()
 
     // Resolve ironmac binary location
     var ironmacBin: String {
@@ -48,21 +54,79 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return "ironmac"
     }
 
+    // Custom Vector Fortress Shield Icon (No Emoji - Pure Native macOS Vector)
+    func createShieldIcon(airgapped: Bool, armed: Bool) -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size, flipped: false) { rect in
+            // Outer Fortress Shield Path
+            let shield = NSBezierPath()
+            shield.move(to: NSPoint(x: 9.0, y: 16.5))
+            shield.line(to: NSPoint(x: 15.5, y: 14.2))
+            shield.curve(to: NSPoint(x: 15.5, y: 8.5), controlPoint1: NSPoint(x: 15.5, y: 14.2), controlPoint2: NSPoint(x: 15.5, y: 11.0))
+            shield.curve(to: NSPoint(x: 9.0, y: 1.5), controlPoint1: NSPoint(x: 15.5, y: 4.8), controlPoint2: NSPoint(x: 12.0, y: 2.8))
+            shield.curve(to: NSPoint(x: 2.5, y: 8.5), controlPoint1: NSPoint(x: 6.0, y: 2.8), controlPoint2: NSPoint(x: 2.5, y: 4.8))
+            shield.curve(to: NSPoint(x: 2.5, y: 14.2), controlPoint1: NSPoint(x: 2.5, y: 11.0), controlPoint2: NSPoint(x: 2.5, y: 14.2))
+            shield.close()
+
+            shield.lineWidth = 1.3
+            shield.lineJoinStyle = .round
+            NSColor.black.setStroke()
+            shield.stroke()
+
+            if airgapped {
+                // Lightning Bolt for Hardware Air-Gap Active
+                let bolt = NSBezierPath()
+                bolt.move(to: NSPoint(x: 9.6, y: 13.8))
+                bolt.line(to: NSPoint(x: 6.8, y: 9.2))
+                bolt.line(to: NSPoint(x: 9.0, y: 9.2))
+                bolt.line(to: NSPoint(x: 8.4, y: 4.8))
+                bolt.line(to: NSPoint(x: 11.8, y: 9.2))
+                bolt.line(to: NSPoint(x: 9.6, y: 9.2))
+                bolt.close()
+                NSColor.black.setFill()
+                bolt.fill()
+            } else if armed {
+                // Verification Checkmark for Armed Defenses
+                let check = NSBezierPath()
+                check.move(to: NSPoint(x: 5.8, y: 8.8))
+                check.line(to: NSPoint(x: 8.2, y: 6.2))
+                check.line(to: NSPoint(x: 12.2, y: 11.5))
+                check.lineWidth = 1.4
+                check.lineCapStyle = .round
+                check.lineJoinStyle = .round
+                NSColor.black.setStroke()
+                check.stroke()
+            } else {
+                // Subtle Center Dot for Partial Status
+                let dot = NSBezierPath(ovalIn: NSRect(x: 7.6, y: 7.6, width: 2.8, height: 2.8))
+                NSColor.black.setFill()
+                dot.fill()
+            }
+
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }
+
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            button.title = "🛡️"
+            button.image = createShieldIcon(airgapped: false, armed: true)
+            button.imagePosition = .imageOnly
+            button.title = ""
             button.toolTip = "IronMac Web3 Fortress Workstation"
         }
         menu.delegate = self
         statusItem.menu = menu
         buildMenu()
 
-        // Background timer to refresh telemetry every 5 seconds
-        Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.refreshStatus()
-            }
+        // Initial background telemetry refresh
+        refreshStatusAsync()
+
+        // Background timer to refresh telemetry every 4 seconds asynchronously
+        Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { [weak self] _ in
+            self?.refreshStatusAsync()
         }
     }
 
@@ -70,27 +134,44 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         buildMenu()
     }
 
-    func refreshStatus() {
-        let airgapped = isAirgapActive()
-        let trapRunning = isProcessRunning("trap_sentry.py")
-        let clipRunning = isProcessRunning("clip_guard.py")
-        let allArmed = trapRunning && clipRunning
+    func refreshStatusAsync() {
+        guard !isRefreshing else { return }
+        isRefreshing = true
 
-        if let button = statusItem?.button {
-            if airgapped {
-                button.title = "🛡️⚡"
-                button.toolTip = "IronMac: Hardware Air-Gap ACTIVE (Wi-Fi OFF)"
-            } else if allArmed {
-                button.title = "🛡️"
-                button.toolTip = "IronMac: Defenses ARMED"
-            } else {
-                button.title = "🛡️"
-                button.toolTip = "IronMac: Defenses PARTIAL"
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self = self else { return }
+            let airgapped = self.checkAirgapActive()
+            let trapRunning = self.checkProcessRunning("trap_sentry.py")
+            let clipRunning = self.checkProcessRunning("clip_guard.py")
+
+            DispatchQueue.main.async {
+                self.cachedAirgapped = airgapped
+                self.cachedTrapRunning = trapRunning
+                self.cachedClipRunning = clipRunning
+                self.isRefreshing = false
+                self.updateStatusButton()
             }
         }
     }
 
-    func isAirgapActive() -> Bool {
+    func updateStatusButton() {
+        guard let button = statusItem?.button else { return }
+        let allArmed = cachedTrapRunning && cachedClipRunning
+
+        button.image = createShieldIcon(airgapped: cachedAirgapped, armed: allArmed)
+        button.title = ""
+        button.imagePosition = .imageOnly
+
+        if cachedAirgapped {
+            button.toolTip = "IronMac: Hardware Air-Gap ACTIVE (Wi-Fi OFF)"
+        } else if allArmed {
+            button.toolTip = "IronMac: Defenses ARMED"
+        } else {
+            button.toolTip = "IronMac: Defenses PARTIAL"
+        }
+    }
+
+    func checkAirgapActive() -> Bool {
         let dev = wifiDevice
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
@@ -104,7 +185,7 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return !output.contains("On")
     }
 
-    func isProcessRunning(_ name: String) -> Bool {
+    func checkProcessRunning(_ name: String) -> Bool {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
         process.arguments = ["-f", name]
@@ -116,15 +197,14 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc func toggleAirgap() {
-        let currentlyAirgapped = isAirgapActive()
+        let currentlyAirgapped = cachedAirgapped
         let dev = wifiDevice
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
         process.arguments = ["-setairportpower", dev, currentlyAirgapped ? "on" : "off"]
         try? process.run()
         process.waitUntilExit()
-        refreshStatus()
-        buildMenu()
+        refreshStatusAsync()
     }
 
     @objc func openVaultConsole() {
@@ -161,7 +241,7 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         alert.alertStyle = .critical
         alert.addButton(withTitle: "TRIGGER PANIC NOW")
         alert.addButton(withTitle: "Cancel")
-        
+
         NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertFirstButtonReturn {
             let bin = ironmacBin
@@ -169,8 +249,7 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             process.executableURL = URL(fileURLWithPath: "/bin/bash")
             process.arguments = ["-c", "\(bin) panic trigger \"Triggered via MenuBar Companion App\""]
             try? process.run()
-            refreshStatus()
-            buildMenu()
+            refreshStatusAsync()
         }
     }
 
@@ -195,8 +274,7 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         process.arguments = ["-c", "\(bin) trap start; \(bin) clip-guard start"]
         try? process.run()
         process.waitUntilExit()
-        refreshStatus()
-        buildMenu()
+        refreshStatusAsync()
     }
 
     @objc func quitApp() {
@@ -214,12 +292,12 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func buildMenu() {
         menu.removeAllItems()
 
-        let airgapped = isAirgapActive()
-        let trapRunning = isProcessRunning("trap_sentry.py")
-        let clipRunning = isProcessRunning("clip_guard.py")
+        let airgapped = cachedAirgapped
+        let trapRunning = cachedTrapRunning
+        let clipRunning = cachedClipRunning
 
         // 1. Header
-        let header = NSMenuItem(title: "🛡️ IronMac Fortress v0.6.0", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: "⚡ IronMac Fortress v0.6.1", action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
 

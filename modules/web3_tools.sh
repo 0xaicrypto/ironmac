@@ -21,7 +21,7 @@ if ! command -v brew >/dev/null 2>&1; then
 fi
 
 echo "Select your workstation profile:"
-echo "  1) 🛡️ Security Essentials (GnuPG, Pinentry, LuLu outbound firewall)"
+echo "  1) 🔒 Security Essentials (GnuPG, Pinentry, LuLu outbound firewall)"
 echo "  2) ⚡ Web3 Developer (Foundry, Starkli, Rust, Node, pnpm, GnuPG)"
 echo "  3) 🪙 Trader / Degen (Brave Browser, Ledger Live, LuLu)"
 echo "  4) 👛 Open-Source CLI Wallets Only (Foundry cast for EVM + Starkli for Starknet)"

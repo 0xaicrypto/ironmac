@@ -1,6 +1,6 @@
 {
   "name": "@0xaicrypto/ironmac-mcp",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Model Context Protocol (MCP) server for IronMac - Fortress-grade macOS security for Web3 & AI Agents",
   "type": "module",
   "main": "dist/index.js",

@@ -1,14 +1,25 @@
-# <img src="assets/icons/shield.svg" width="28" height="28" valign="middle" alt="IronMac Shield" /> IronMac
+<p align="center">
+  <a href="https://github.com/0xaicrypto/ironmac">
+    <img src="assets/logo.svg" width="128" height="128" alt="IronMac Fortress Shield Logo" />
+  </a>
+</p>
 
-> **Hardened Web3 & Crypto Workstation for macOS.**  
-> Defend against macOS infostealers (AMOS), eliminate plaintext shell history key leaks, deploy active canary honeypots, and isolate high-value transaction signing into auditable clean-room environments.  
+<h1 align="center">IronMac</h1>
+
+<p align="center">
+  <b>Hardened Web3 & Crypto Workstation Suite for macOS</b><br>
+  <i>Fortress-grade defense against macOS AMOS infostealers, plaintext shell key leakage, and blind-signing attacks.</i>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+  <img src="https://img.shields.io/badge/Platform-macOS%2013%2B-orange.svg" alt="Platform: macOS" />
+  <img src="https://img.shields.io/badge/Architecture-Apple%20Silicon%20%7C%20Intel-green.svg" alt="Apple Silicon & Intel" />
+  <img src="https://img.shields.io/badge/Tools-16%20MCP%20Tools-blueviolet.svg" alt="16 MCP Tools" />
+  <a href="https://github.com/0xaicrypto/ironmac/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome" /></a>
+</p>
+
 > <img src="assets/icons/book.svg" width="16" height="16" valign="middle" alt="Guide" /> **Comprehensive Guide:** See the [IronMac User Manual (MANUAL.md)](MANUAL.md) for full operational documentation.
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform: macOS](https://img.shields.io/badge/Platform-macOS%2013%2B-orange.svg)]()
-[![Arch: Apple Silicon / Intel](https://img.shields.io/badge/Architecture-Apple%20Silicon%20%7C%20Intel-green.svg)]()
-[![Code: 100% Auditable Shell](https://img.shields.io/badge/Code-100%25%20Auditable%20Shell-brightgreen.svg)]()
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/0xaicrypto/ironmac/pulls)
 
 ---
 
@@ -515,7 +526,7 @@ IronMac pairs CLI-grade security with native macOS desktop ergonomics. You can m
 
 ```text
        ┌────────────────────────────────────────────────────────┐
-       │ [*] IronMac Fortress v0.6.1                            │
+       │ [*] IronMac Fortress v0.6.2                            │
        │ ● Active Defenses: ARMED                               │
        │ ────────────────────────────────────────────────────── │
        │ > Launch IronVault Console                         ⌘C   │

@@ -1473,7 +1473,7 @@ async function prepareTransaction(args: PrepareTransactionArgs) {
 
   const cardLines = [
     `\n${riskColor}┌────────────────────────────────────────────────────────────────────────┐${resetColor}`,
-    `${riskColor}│\x1b[0m \x1b[1m🛡️  IRONMAC PRE-EXECUTION TRANSACTION CARD\x1b[0m                              ${riskColor}│${resetColor}`,
+    `${riskColor}│\x1b[0m \x1b[1m⚡ [IRONMAC // PRE-EXECUTION TRANSACTION CARD]\x1b[0m                        ${riskColor}│${resetColor}`,
     `${riskColor}├────────────────────────────────────────────────────────────────────────┤${resetColor}`,
     `${riskColor}│\x1b[0m • \x1b[1mSending Vault    \x1b[0m: \x1b[38;5;214m${alias}\x1b[0m (${senderAddress})`,
     `${riskColor}│\x1b[0m • \x1b[1mNetwork / Chain  \x1b[0m: ${rpcInfo.name} (Chain ID: ${rpcInfo.chain_id})`,
@@ -1669,7 +1669,7 @@ async function main() {
   const server = new Server(
     {
       name: "ironmac-mcp",
-      version: "0.6.1",
+      version: "0.6.2",
     },
     {
       capabilities: {
