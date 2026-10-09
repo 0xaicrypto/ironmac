@@ -45,7 +45,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo ""
-echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONMAC // SECURE VAULT CONSOLE v0.5.0 ]${RESET}${GRAY}────────────────────────┐${RESET}"
+echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONMAC // SECURE VAULT CONSOLE v0.6.0 ]${RESET}${GRAY}────────────────────────┐${RESET}"
 
 # 1. Mount 32MB Ephemeral RAM Disk (if supported)
 RAW_DEV=$(hdiutil attach -nomount ram://65536 2>/dev/null | awk '{print $1}' || true)
@@ -79,14 +79,17 @@ command -v cast >/dev/null 2>&1 && FOUNDRY_STATUS="${GREEN}● Ready${RESET}"
 STARKLI_STATUS="${GRAY}○ Missing${RESET}"
 command -v starkli >/dev/null 2>&1 && STARKLI_STATUS="${GREEN}● Ready${RESET}"
 
+GEMINI_STATUS="${GRAY}○ Missing${RESET}"
+command -v gemini >/dev/null 2>&1 && GEMINI_STATUS="${GREEN}● Ready${RESET}"
+
 TRAP_STATUS="${GRAY}○ Inactive${RESET}"
 pgrep -f "trap_sentry.py" >/dev/null && TRAP_STATUS="${GREEN}● Armed${RESET}"
 
 CLIP_STATUS="${GRAY}○ Inactive${RESET}"
 pgrep -f "clip_guard.py" >/dev/null && CLIP_STATUS="${GREEN}● Armed${RESET}"
 
-echo -e "${GRAY}│${RESET}  ${BOLD}TELEMETRY${RESET} : Cast: ${FOUNDRY_STATUS}  Starkli: ${STARKLI_STATUS}  Trap: ${TRAP_STATUS}  ClipGuard: ${CLIP_STATUS}"
-echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ ZERO-TRACE AIR-GAP SANDBOX // TYPE 'help' FOR MANUAL ]${RESET}${GRAY}────────┘${RESET}\n"
+echo -e "${GRAY}│${RESET}  ${BOLD}TELEMETRY${RESET} : AI: ${GEMINI_STATUS}  Cast: ${FOUNDRY_STATUS}  Starkli: ${STARKLI_STATUS}  Trap: ${TRAP_STATUS}  ClipGuard: ${CLIP_STATUS}"
+echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ ZERO-TRACE AIR-GAP SANDBOX // TYPE 'help' OR 'ai' ]${RESET}${GRAY}───────────┘${RESET}\n"
 
 # 2. Prepare Isolated Zero-Trace Shell Configuration
 ZDOT_DIR="${TMP_ENV_DIR}/zdot"
@@ -588,8 +591,111 @@ install-starknet-wallet() {
     export PATH="$HOME/.starkli/bin:$PATH"
     echo "✓ Starkli installed. Try: starkli signer create ./signer.json"
 }
+
+ai() {
+    if command -v gemini >/dev/null 2>&1; then
+        gemini --skip-trust "$@"
+    else
+        echo -e "\033[38;5;214mGemini CLI not found.\033[0m Install via: npm install -g @google/gemini-cli"
+    fi
+}
+
+wallets() {
+    local kdir="${MOUNT_POINT}/keys"
+    if [[ -d "$kdir" ]]; then
+        local found=0
+        for f in "$kdir"/*.json; do
+            [[ -e "$f" ]] || continue
+            found=1
+            break
+        done
+        if [[ $found -eq 1 ]]; then
+            echo -e "\033[1;38;5;51mActive Vault Wallets in RAMDisk:\033[0m"
+            for k in "$kdir"/*.json; do
+                [[ -e "$k" ]] || continue
+                local alias="$(basename "$k" .json)"
+                local addr="$(grep '"address"' "$k" 2>/dev/null | awk -F'"' '{print $4}')"
+                local chain="$(grep '"chain"' "$k" 2>/dev/null | awk -F'"' '{print $4}')"
+                echo -e "  • \033[1;38;5;214m${alias}\033[0m [${chain:-evm}]: \033[38;5;82m${addr}\033[0m"
+            done
+            echo -e "\033[38;5;242m(Private keys strictly isolated in RAMDisk, never written to disk)\033[0m"
+        else
+            echo "No wallets generated in this RAM session yet. Ask AI or run: cast wallet new"
+        fi
+    else
+        echo "No keys directory found in RAMDisk."
+    fi
+}
 EOF
 
-# 3. Launch isolated subshell inside RAM workspace
+# 3. Setup Ephemeral RAMDisk AI Workspace & Settings
+KEYS_DIR="${MOUNT_POINT}/keys"
+mkdir -p "${KEYS_DIR}"
+chmod 700 "${KEYS_DIR}"
+
+GEMINI_DIR="${MOUNT_POINT}/.gemini"
+mkdir -p "${GEMINI_DIR}"
+
+cat <<EOF_SETTINGS > "${GEMINI_DIR}/settings.json"
+{
+  "mcpServers": {
+    "ironmac": {
+      "command": "ironmac",
+      "args": ["mcp"]
+    }
+  }
+}
+EOF_SETTINGS
+
+cat <<'EOF_GEMINI_MD' > "${MOUNT_POINT}/GEMINI.md"
+# IronConsole AI - Hardened Web3 Copilot Guidelines
+
+You are IronConsole AI, the hardened Web3 crypto terminal operating system for macOS running inside an ephemeral RAMDisk (/Volumes/IronVault).
+
+## CORE OPERATIONAL RULES (MANDATORY):
+1. **Zero-Leak Key Custody (STRICT)**:
+   - When the user asks to create, generate, or inspect an EVM wallet (Base, Ethereum, Arbitrum, Mantle, Sepolia), ALWAYS call the MCP tool `create_vault_wallet` with a descriptive alias (e.g. 'burner_base', 'dev1') and target chain.
+   - NEVER generate private keys directly in conversation text or ask the user to paste raw private keys into chat.
+   - The private key is outputted directly to the user's physical display via `/dev/tty` and stripped from your context. Reassure the user that their key is safe in local volatile RAM and never transmitted to the cloud.
+2. **Wallet Management & Balances**:
+   - To view existing wallets in RAM, call `list_vault_wallets`.
+   - To check native token balances on Base, Ethereum, Arbitrum, or Mantle, call `get_vault_wallet_balance`.
+3. **Transaction Safety & Address Verification**:
+   - Before any transfer or transaction, ALWAYS verify the recipient address with `verify_crypto_address` to check EIP-55 checksums and address poisoning.
+   - For high-value transactions or sensitive signing, advise using `toggle_airgap` to cut network connectivity.
+4. **Security & Threat Response**:
+   - If user asks for security audit or defense status, call `audit_system_security` or `get_defense_telemetry`.
+   - In emergency malware situations, call `trigger_emergency_panic`.
+EOF_GEMINI_MD
+
+# 4. Launch AI-Native Console or Classic Subshell
+MODE="${1:-}"
+
 cd "${MOUNT_POINT}"
-ZDOTDIR="${ZDOT_DIR}" zsh -i
+
+if [[ "${MODE}" == "--classic" || "${MODE}" == "-s" || "${MODE}" == "--shell" ]]; then
+    echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ ENTERING ZERO-TRACE CLASSIC SHELL ]${RESET}${GRAY}────────────────────────┐${RESET}"
+    echo -e "${GRAY}│${RESET}  Type \033[1;38;5;82m'ai'\033[0m to enter AI-Native Copilot mode, or \033[1;38;5;214m'wallets'\033[0m to view keys. ${GRAY}│${RESET}"
+    echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ ALL ARTIFACTS IN RAM // 'exit' TO SHRED ]${RESET}${GRAY}──────────────────────┘${RESET}\n"
+    ZDOTDIR="${ZDOT_DIR}" zsh -i
+else
+    if command -v gemini >/dev/null 2>&1; then
+        echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONCONSOLE AI // WEB3 INTENT COPILOT ]${RESET}${GRAY}────────────────────────┐${RESET}"
+        echo -e "${GRAY}│${RESET}  ${BOLD}AI ENGINE${RESET}  : ${GREEN}Google Gemini CLI (Active • Zero-Leak Handle Mode)${RESET}"
+        echo -e "${GRAY}│${RESET}  ${BOLD}SANDBOX${RESET}    : ${GREEN}${KEYS_DIR} (Ephemeral RAMDisk)${RESET}"
+        echo -e "${GRAY}│${RESET}  ${BOLD}INTERACTION${RESET}: Talk to AI in natural language to manage wallets & DeFi"
+        echo -e "${GRAY}│${RESET}  ${BOLD}FALLBACK${RESET}   : Type '/quit' to drop to zsh shell, or 'exit' to shred"
+        echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ STARTING AI CONTROL PLANE // ZERO KEYS ON DISK ]${RESET}${GRAY}──────────────┘${RESET}\n"
+        
+        gemini --skip-trust || true
+        
+        echo -e "\n${GRAY}┌──${RESET}${BOLD}${YELLOW}[ ⚡ DROPPING TO ZERO-TRACE RAM SHELL ]${RESET}${GRAY}─────────────────────────────┐${RESET}"
+        echo -e "${GRAY}│${RESET}  Type \033[1;38;5;82m'ai'\033[0m to re-enter AI Copilot, or \033[1m'exit'\033[0m to destroy RAMDisk.       ${GRAY}│${RESET}"
+        echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ VOLATILE MEMORY // PERSISTENCE DISABLED ]${RESET}${GRAY}─────────────────────┘${RESET}\n"
+        ZDOTDIR="${ZDOT_DIR}" zsh -i
+    else
+        echo -e "${YELLOW}Notice: 'gemini' CLI not found. Falling back to zero-trace zsh shell.${RESET}"
+        echo -e "${GRAY}To enable AI-native console, install: npm install -g @google/gemini-cli${RESET}\n"
+        ZDOTDIR="${ZDOT_DIR}" zsh -i
+    fi
+fi

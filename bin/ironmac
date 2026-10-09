@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.5.1"
+VERSION="0.6.0"
 # Resolve real source directory even if called through symlinks (e.g. ~/.local/bin/ironmac)
 TARGET="${BASH_SOURCE[0]}"
 while [ -L "$TARGET" ]; do
@@ -114,7 +114,7 @@ case "${CMD}" in
         bash "${SOURCE_DIR}/modules/vault_browser.sh"
         ;;
     console)
-        exec bash "${SOURCE_DIR}/modules/console.sh"
+        exec bash "${SOURCE_DIR}/modules/console.sh" "${@:2}"
         ;;
     trap)
         bash "${SOURCE_DIR}/modules/trap.sh" "${2:-status}"
