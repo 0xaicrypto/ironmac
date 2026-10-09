@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.6.2"
+VERSION="0.6.3"
 # Resolve real source directory even if called through symlinks (e.g. ~/.local/bin/ironmac)
 TARGET="${BASH_SOURCE[0]}"
 while [ -L "$TARGET" ]; do
@@ -42,7 +42,7 @@ show_help() {
     echo "  audit          Run a comprehensive security audit of your Mac"
     echo "  harden         Apply recommended security baselines and network stealth"
     echo "  vault-browser  Create an isolated, dedicated Web3 wallet browser profile"
-    echo "  console        Launch a zero-trace, ephemeral RAM-backed secure terminal"
+    echo "  console        Launch AI-native Web3 terminal (Antigravity / Gemini CLI) [--agy|--gemini|--classic]"
     echo "  trap           Anti-AMOS honeypot decoys & tripwire sentry [start|stop|status|test]"
     echo "  clip-guard     Clipboard address swap detector & 30s key auto-wipe [start|stop|status|clear|test]"
     echo "  panic          Emergency air-gap: instant Wi-Fi shutdown & threat isolation [trigger|restore]"
@@ -62,7 +62,7 @@ interactive_menu() {
     echo "  1) 🔍 Security Health Audit"
     echo "  2) 🔒 Apply System Hardening Baseline"
     echo "  3) 🌐 Create Isolated Vault Browser Profile"
-    echo "  4) 💻 Launch Secure Vault Console (Zero-History & RAM-backed)"
+    echo "  4) 💻 Launch Secure Vault Console (AI Copilot: agy / gemini & RAM-backed)"
     echo "  5) 🪤 Anti-AMOS Honeypot Trap (Deploy Decoys & Tripwire Sentry)"
     echo "  6) 📋 Clipboard Guard (Address Swap Detection & 30s Key Auto-Purge)"
     echo "  7) 🚨 Emergency Panic Air-Gap (Instant Wi-Fi Drop & Threat Isolation)"

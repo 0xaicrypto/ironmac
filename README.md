@@ -91,7 +91,7 @@ MacBooks are the undisputed hardware of choice for Web3 founders, smart contract
 
 - <img src="assets/icons/audit.svg" width="16" height="16" valign="middle" /> **Security Health Audit:** Scans your system's FileVault encryption, SIP, Gatekeeper, Application Firewall, and remote sharing services with an instant risk score.
 - <img src="assets/icons/lock.svg" width="16" height="16" valign="middle" /> **Automated Baseline Hardening:** One-click enables stealth mode, drops unsolicited ICMP pings, closes unauthenticated ports, and restricts remote automation.
-- <img src="assets/icons/terminal.svg" width="16" height="16" valign="middle" /> **Zero-Trace Vault Console:** Spawns an ephemeral, RAM-backed terminal session (`/Volumes/IronVault`) featuring a cyberpunk telemetry HUD, two-line tactical prompt, and shell history completely disabled (`HISTFILE=/dev/null`). Includes built-in `shred`, `keccak`, `wei2eth`, and offline wallet tooling. All commands and scratch files vanish from memory upon exit.
+- <img src="assets/icons/terminal.svg" width="16" height="16" valign="middle" /> **AI-Native Vault Console (`ironmac console`):** Spawns an ephemeral, RAM-backed terminal session (`/Volumes/IronVault`) powered by your choice of AI engine (**Google Antigravity `agy`** or **Google Gemini CLI `gemini`**). Quarantines private keys in volatile memory, exposes 16 MCP security tools to the AI copilot, and displays private keys out-of-band directly to physical terminal screen (`/dev/tty`). Supports instant switching between Antigravity, Gemini CLI, and zero-trace classic shell (`--agy`, `--gemini`, `--classic`).
 - <img src="assets/icons/wallet.svg" width="16" height="16" valign="middle" /> **Built-in EVM & Starknet CLI Wallets:** Instant, zero-trace wallet generation and transaction signing using Foundry's `cast` (EVM) and `starkli` (Starknet) directly inside the ephemeral RAM Disk.
 - <img src="assets/icons/trap.svg" width="16" height="16" valign="middle" /> **Active Anti-AMOS Honeypot Trap:** Deploys decoy canary keystores in standard infostealer targets (`~/.ethereum/keystore`, `~/.config/solana`, Documents) and runs a zero-CPU `kqueue` sentry daemon that immediately fires audio & desktop alarms when untrusted processes tamper with them.
 - <img src="assets/icons/clipboard.svg" width="16" height="16" valign="middle" /> **Clipboard Guard:** Detects silent address swapping trojans (EVM, Solana, Bitcoin) and automatically purges copied private keys and seed phrases after a 30-second TTL.
@@ -286,8 +286,13 @@ When using agentic coding tools (Cursor Agent, Claude Code, Cline), you grant th
 2. **Ephemeral RAM Isolation:** Sensitive private key generation, signing, and secret deployment occur in `/Volumes/IronVault/`, completely isolated from your project workspace and git repository.
 3. **Clipboard Key Auto-Wipe:** Copied keys and seed phrases are purged by `ironmac clip-guard` within 30 seconds, preventing background agents from reading lingering clipboard memory.
 
-#### Dimension B: Autonomous Security Control Plane (Empowering Agents *with* IronMac Defenses)
-When running or developing autonomous Web3 agents, IronMac provides an official **Model Context Protocol (MCP)** server written in TypeScript. Agents can inspect system security, validate cryptographic recipient addresses, audit generated code for plaintext keys, and isolate network interfaces during high-value signing.
+#### Dimension B: AI-Native Web3 Terminal & Control Plane (Google Antigravity & Gemini CLI)
+In IronMac v0.6.3+, `ironmac console` transforms your terminal into an AI-native Web3 operating system powered by **Google Antigravity (`agy`)** and **Google Gemini CLI (`gemini`)**:
+- **Autonomous Agent Plane (Antigravity `agy`)**: Leverages Antigravity's deep reasoning and agentic tool use to orchestrate multi-step DeFi security workflows, codebase auditing, address verification, and automated wallet management.
+- **Natural Language Intent Plane (Gemini CLI `gemini`)**: Chat naturally with Gemini CLI to query balances, decode calldata, verify contract safety, and draft transactions.
+- **Zero-Knowledge Key Quarantine**: Ephemeral wallets generated via AI are assigned abstract handles (`alias`) in RAMDisk (`/Volumes/IronVault/keys/`). Raw private keys and mnemonics print out-of-band directly to `/dev/tty` (physical terminal screen) and are strictly redacted from AI context windows.
+- **Human-in-the-Loop Confirmation**: AI agents simulate transactions (`prepare_transaction`) and present ASCII Pre-Execution Cards with gas estimates. On-chain broadcast (`execute_vault_transaction`) strictly mandates interactive human confirmation.
+- **Flexible Engine Choice**: Launch with `ironmac console --agy`, `ironmac console --gemini`, or `ironmac console --classic` (or persist preference via `export IRONMAC_AI=agy`).
 
 ---
 
@@ -526,7 +531,7 @@ IronMac pairs CLI-grade security with native macOS desktop ergonomics. You can m
 
 ```text
        ┌────────────────────────────────────────────────────────┐
-       │ [*] IronMac Fortress v0.6.2                            │
+       │ [*] IronMac Fortress v0.6.3                            │
        │ ● Active Defenses: ARMED                               │
        │ ────────────────────────────────────────────────────── │
        │ > Launch IronVault Console                         ⌘C   │
@@ -638,7 +643,7 @@ Commands:
   audit          Run a comprehensive security audit of your Mac
   harden         Apply recommended security baselines and network stealth
   vault-browser  Launch or configure the isolated Web3 wallet browser profile
-  console        Launch a zero-trace, ephemeral RAM-backed secure terminal
+  console        Launch AI-native Web3 terminal (Antigravity / Gemini CLI) [--agy|--gemini|--classic]
   trap           Anti-AMOS honeypot decoys & tripwire sentry [start|stop|status|test]
   clip-guard     Clipboard address swap detector & 30s key auto-wipe [start|stop|status|clear|test]
   panic          Emergency air-gap: instant Wi-Fi shutdown & threat isolation [trigger|restore]

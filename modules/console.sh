@@ -45,7 +45,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo ""
-echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONMAC // SECURE VAULT CONSOLE v0.6.2 ]${RESET}${GRAY}────────────────────────┐${RESET}"
+echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONMAC // SECURE VAULT CONSOLE v0.6.3 ]${RESET}${GRAY}────────────────────────┐${RESET}"
 
 # 1. Mount 32MB Ephemeral RAM Disk (if supported)
 RAW_DEV=$(hdiutil attach -nomount ram://65536 2>/dev/null | awk '{print $1}' || true)
@@ -82,13 +82,16 @@ command -v starkli >/dev/null 2>&1 && STARKLI_STATUS="${GREEN}● Ready${RESET}"
 GEMINI_STATUS="${GRAY}○ Missing${RESET}"
 command -v gemini >/dev/null 2>&1 && GEMINI_STATUS="${GREEN}● Ready${RESET}"
 
+AGY_STATUS="${GRAY}○ Missing${RESET}"
+command -v agy >/dev/null 2>&1 && AGY_STATUS="${GREEN}● Ready${RESET}"
+
 TRAP_STATUS="${GRAY}○ Inactive${RESET}"
 pgrep -f "trap_sentry.py" >/dev/null && TRAP_STATUS="${GREEN}● Armed${RESET}"
 
 CLIP_STATUS="${GRAY}○ Inactive${RESET}"
 pgrep -f "clip_guard.py" >/dev/null && CLIP_STATUS="${GREEN}● Armed${RESET}"
 
-echo -e "${GRAY}│${RESET}  ${BOLD}TELEMETRY${RESET} : AI: ${GEMINI_STATUS}  Cast: ${FOUNDRY_STATUS}  Starkli: ${STARKLI_STATUS}  Trap: ${TRAP_STATUS}  ClipGuard: ${CLIP_STATUS}"
+echo -e "${GRAY}│${RESET}  ${BOLD}TELEMETRY${RESET} : Gemini: ${GEMINI_STATUS}  Antigravity(agy): ${AGY_STATUS}  Cast: ${FOUNDRY_STATUS}  Trap: ${TRAP_STATUS}  ClipGuard: ${CLIP_STATUS}"
 echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ ZERO-TRACE AIR-GAP SANDBOX // TYPE 'help' OR 'ai' ]${RESET}${GRAY}───────────┘${RESET}\n"
 
 # 2. Prepare Isolated Zero-Trace Shell Configuration
@@ -593,10 +596,46 @@ install-starknet-wallet() {
 }
 
 ai() {
+    local target="${IRONMAC_AI:-}"
+    if [[ -z "$target" ]]; then
+        if command -v agy >/dev/null 2>&1 && command -v gemini >/dev/null 2>&1; then
+            echo -e "\033[1;38;5;51m[Select AI Engine]\033[0m: 1) Google Antigravity (agy)  2) Google Gemini CLI (gemini)"
+            read -r "choice?Enter 1 or 2 [default: 1]: "
+            echo ""
+            if [[ "$choice" == "2" ]]; then
+                target="gemini"
+            else
+                target="agy"
+            fi
+        elif command -v agy >/dev/null 2>&1; then
+            target="agy"
+        elif command -v gemini >/dev/null 2>&1; then
+            target="gemini"
+        fi
+    fi
+
+    if [[ "$target" == "agy" ]]; then
+        agy --dangerously-skip-permissions "$@"
+    elif [[ "$target" == "gemini" ]]; then
+        gemini --skip-trust "$@"
+    else
+        echo -e "\033[38;5;214mNo AI engine found.\033[0m Install Google Antigravity (agy) or Gemini CLI (@google/gemini-cli)."
+    fi
+}
+
+agy-ai() {
+    if command -v agy >/dev/null 2>&1; then
+        agy --dangerously-skip-permissions "$@"
+    else
+        echo -e "\033[38;5;196m'agy' (Google Antigravity CLI) not found in PATH.\033[0m"
+    fi
+}
+
+gemini-ai() {
     if command -v gemini >/dev/null 2>&1; then
         gemini --skip-trust "$@"
     else
-        echo -e "\033[38;5;214mGemini CLI not found.\033[0m Install via: npm install -g @google/gemini-cli"
+        echo -e "\033[38;5;196m'gemini' CLI not found in PATH.\033[0m"
     fi
 }
 
@@ -647,6 +686,23 @@ cat <<EOF_SETTINGS > "${GEMINI_DIR}/settings.json"
 }
 EOF_SETTINGS
 
+# Antigravity (agy) Workspace & MCP Configuration
+AGENTS_DIR="${MOUNT_POINT}/.agents"
+mkdir -p "${AGENTS_DIR}"
+
+cat <<EOF_AGY_SETTINGS > "${AGENTS_DIR}/mcp_config.json"
+{
+  "mcpServers": {
+    "ironmac": {
+      "command": "ironmac",
+      "args": ["mcp"]
+    }
+  }
+}
+EOF_AGY_SETTINGS
+
+cp "${AGENTS_DIR}/mcp_config.json" "${MOUNT_POINT}/mcp_config.json"
+
 cat <<'EOF_GEMINI_MD' > "${MOUNT_POINT}/GEMINI.md"
 # IronConsole AI - Hardened Web3 Copilot Guidelines
 
@@ -686,34 +742,97 @@ You are IronConsole AI, the hardened Web3 crypto terminal operating system for m
    - In emergency malware situations, call `trigger_emergency_panic`.
 EOF_GEMINI_MD
 
+cp "${MOUNT_POINT}/GEMINI.md" "${MOUNT_POINT}/AGENTS.md"
+
 # 4. Launch AI-Native Console or Classic Subshell
-MODE="${1:-}"
+TARGET_ENGINE="${1:-}"
+if [[ -z "${TARGET_ENGINE}" && -n "${IRONMAC_AI:-}" ]]; then
+    TARGET_ENGINE="${IRONMAC_AI}"
+fi
+
+HAS_AGY=0
+HAS_GEMINI=0
+command -v agy >/dev/null 2>&1 && HAS_AGY=1
+command -v gemini >/dev/null 2>&1 && HAS_GEMINI=1
+
+SELECTED=""
 
 cd "${MOUNT_POINT}"
 
-if [[ "${MODE}" == "--classic" || "${MODE}" == "-s" || "${MODE}" == "--shell" ]]; then
-    echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ ENTERING ZERO-TRACE CLASSIC SHELL ]${RESET}${GRAY}────────────────────────┐${RESET}"
-    echo -e "${GRAY}│${RESET}  Type \033[1;38;5;82m'ai'\033[0m to enter AI-Native Copilot mode, or \033[1;38;5;214m'wallets'\033[0m to view keys. ${GRAY}│${RESET}"
-    echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ ALL ARTIFACTS IN RAM // 'exit' TO SHRED ]${RESET}${GRAY}──────────────────────┘${RESET}\n"
-    ZDOTDIR="${ZDOT_DIR}" zsh -i
+if [[ "${TARGET_ENGINE}" == "--classic" || "${TARGET_ENGINE}" == "-s" || "${TARGET_ENGINE}" == "--shell" ]]; then
+    SELECTED="classic"
+elif [[ "${TARGET_ENGINE}" == "--agy" || "${TARGET_ENGINE}" == "-a" || "${TARGET_ENGINE}" == "agy" ]]; then
+    SELECTED="agy"
+elif [[ "${TARGET_ENGINE}" == "--gemini" || "${TARGET_ENGINE}" == "-g" || "${TARGET_ENGINE}" == "gemini" ]]; then
+    SELECTED="gemini"
 else
-    if command -v gemini >/dev/null 2>&1; then
-        echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONCONSOLE AI // WEB3 INTENT COPILOT ]${RESET}${GRAY}────────────────────────┐${RESET}"
-        echo -e "${GRAY}│${RESET}  ${BOLD}AI ENGINE${RESET}  : ${GREEN}Google Gemini CLI (Active • Zero-Leak Handle Mode)${RESET}"
+    # Interactive selection if both are available
+    if [[ $HAS_AGY -eq 1 && $HAS_GEMINI -eq 1 ]]; then
+        echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ SELECT AI ENGINE // WEB3 OPERATING SYSTEM ]${RESET}${GRAY}───────────────────┐${RESET}"
+        echo -e "${GRAY}│${RESET}  ${BOLD}[1] Google Antigravity (agy)${RESET}  • Autonomous Agent Plane (16 IronMac Tools)   ${GRAY}│${RESET}"
+        echo -e "${GRAY}│${RESET}  ${BOLD}[2] Google Gemini CLI (gemini)${RESET} • Zero-Leak Handle Intent Mode             ${GRAY}│${RESET}"
+        echo -e "${GRAY}│${RESET}  ${BOLD}[3] Classic Zero-Trace Shell${RESET}  • Pure Terminal (Foundry cast, starkli)     ${GRAY}│${RESET}"
+        echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ TIP: Set default via 'export IRONMAC_AI=agy' or '--agy' / '--gemini' ]${RESET}${GRAY}──┘${RESET}\n"
+
+        read -r "choice?Select AI engine [1/2/3, default: 1]: "
+        echo ""
+        case "${choice}" in
+            2) SELECTED="gemini" ;;
+            3) SELECTED="classic" ;;
+            *) SELECTED="agy" ;;
+        esac
+    elif [[ $HAS_AGY -eq 1 ]]; then
+        SELECTED="agy"
+    elif [[ $HAS_GEMINI -eq 1 ]]; then
+        SELECTED="gemini"
+    else
+        SELECTED="classic"
+    fi
+fi
+
+if [[ "${SELECTED}" == "agy" ]]; then
+    if [[ $HAS_AGY -eq 1 ]]; then
+        echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONCONSOLE AI // GOOGLE ANTIGRAVITY ENGINE ]${RESET}${GRAY}──────────────────┐${RESET}"
+        echo -e "${GRAY}│${RESET}  ${BOLD}AI ENGINE${RESET}  : ${GREEN}Google Antigravity (agy v$(agy --version 2>/dev/null || echo '1.x'))${RESET}"
+        echo -e "${GRAY}│${RESET}  ${BOLD}SANDBOX${RESET}    : ${GREEN}${KEYS_DIR} (Ephemeral RAMDisk)${RESET}"
+        echo -e "${GRAY}│${RESET}  ${BOLD}CAPABILITIES${RESET}: 16 MCP Security Tools • Subagents • Multi-Chain Execution"
+        echo -e "${GRAY}│${RESET}  ${BOLD}FALLBACK${RESET}   : Exit agent session to drop to zero-trace zsh subshell"
+        echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ ZERO KEYS ON DISK // PRIVATE KEYS QUARANTINED IN RAM ]${RESET}${GRAY}──────────┘${RESET}\n"
+
+        agy --dangerously-skip-permissions || true
+
+        echo -e "\n${GRAY}┌──${RESET}${BOLD}${YELLOW}[ ⚡ DROPPING TO ZERO-TRACE RAM SHELL ]${RESET}${GRAY}─────────────────────────────┐${RESET}"
+        echo -e "${GRAY}│${RESET}  Type \033[1;38;5;82m'ai'\033[0m or \033[1;38;5;82m'agy'\033[0m to re-enter AI Copilot, or \033[1m'exit'\033[0m to destroy RAMDisk. ${GRAY}│${RESET}"
+        echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ VOLATILE MEMORY // PERSISTENCE DISABLED ]${RESET}${GRAY}─────────────────────┘${RESET}\n"
+        ZDOTDIR="${ZDOT_DIR}" zsh -i
+    else
+        echo -e "${YELLOW}Notice: 'agy' (Google Antigravity CLI) not found.${RESET}"
+        echo -e "${GRAY}Falling back to zero-trace zsh shell.${RESET}\n"
+        ZDOTDIR="${ZDOT_DIR}" zsh -i
+    fi
+elif [[ "${SELECTED}" == "gemini" ]]; then
+    if [[ $HAS_GEMINI -eq 1 ]]; then
+        echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONCONSOLE AI // GOOGLE GEMINI CLI ENGINE ]${RESET}${GRAY}───────────────────┐${RESET}"
+        echo -e "${GRAY}│${RESET}  ${BOLD}AI ENGINE${RESET}  : ${GREEN}Google Gemini CLI (Zero-Leak Handle Mode)${RESET}"
         echo -e "${GRAY}│${RESET}  ${BOLD}SANDBOX${RESET}    : ${GREEN}${KEYS_DIR} (Ephemeral RAMDisk)${RESET}"
         echo -e "${GRAY}│${RESET}  ${BOLD}INTERACTION${RESET}: Talk to AI in natural language to manage wallets & DeFi"
         echo -e "${GRAY}│${RESET}  ${BOLD}FALLBACK${RESET}   : Type '/quit' to drop to zsh shell, or 'exit' to shred"
         echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ STARTING AI CONTROL PLANE // ZERO KEYS ON DISK ]${RESET}${GRAY}──────────────┘${RESET}\n"
-        
+
         gemini --skip-trust || true
-        
+
         echo -e "\n${GRAY}┌──${RESET}${BOLD}${YELLOW}[ ⚡ DROPPING TO ZERO-TRACE RAM SHELL ]${RESET}${GRAY}─────────────────────────────┐${RESET}"
-        echo -e "${GRAY}│${RESET}  Type \033[1;38;5;82m'ai'\033[0m to re-enter AI Copilot, or \033[1m'exit'\033[0m to destroy RAMDisk.       ${GRAY}│${RESET}"
+        echo -e "${GRAY}│${RESET}  Type \033[1;38;5;82m'ai'\033[0m or \033[1;38;5;82m'gemini'\033[0m to re-enter AI Copilot, or \033[1m'exit'\033[0m to destroy RAMDisk. ${GRAY}│${RESET}"
         echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ VOLATILE MEMORY // PERSISTENCE DISABLED ]${RESET}${GRAY}─────────────────────┘${RESET}\n"
         ZDOTDIR="${ZDOT_DIR}" zsh -i
     else
-        echo -e "${YELLOW}Notice: 'gemini' CLI not found. Falling back to zero-trace zsh shell.${RESET}"
-        echo -e "${GRAY}To enable AI-native console, install: npm install -g @google/gemini-cli${RESET}\n"
+        echo -e "${YELLOW}Notice: 'gemini' CLI not found.${RESET}"
+        echo -e "${GRAY}Install via: npm install -g @google/gemini-cli${RESET}\n"
         ZDOTDIR="${ZDOT_DIR}" zsh -i
     fi
+else
+    echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ ENTERING ZERO-TRACE CLASSIC SHELL ]${RESET}${GRAY}────────────────────────┐${RESET}"
+    echo -e "${GRAY}│${RESET}  Type \033[1;38;5;82m'ai'\033[0m to enter AI Copilot, or \033[1;38;5;214m'wallets'\033[0m to view keys.           ${GRAY}│${RESET}"
+    echo -e "${GRAY}└──${RESET}${BOLD}${GRAY}[ ALL ARTIFACTS IN RAM // 'exit' TO SHRED ]${RESET}${GRAY}──────────────────────┘${RESET}\n"
+    ZDOTDIR="${ZDOT_DIR}" zsh -i
 fi

@@ -27,11 +27,12 @@
    - [3.11 macOS 原生状态栏盾牌助手 (`ironmac app`)](#311-macos-原生状态栏盾牌助手-ironmac-app)
    - [3.12 Raycast 脚本生态与快捷键防御 (`ironmac raycast`)](#312-raycast-脚本生态与快捷键防御-ironmac-raycast)
 4. [IronVault 安全控制台深度操作指南](#4-ironvault-安全控制台深度操作指南)
-   - [4.1 纯易失性 RAM Disk 机制与工作空间](#41-纯易失性-ram-disk-机制与工作空间)
-   - [4.2 零磁盘日志与历史记录敏感词实时脱敏](#42-零磁盘日志与历史记录敏感词实时脱敏)
-   - [4.3 控制台专属命令详解 (HUD / Verify / Scan / AirGap / RPC / Shred)](#43-控制台专属命令详解)
-   - [4.4 原生 EVM 与 Starknet 钱包操作全流程](#44-原生-evm-与-starknet-钱包操作全流程)
-   - [4.5 退出与内存擦除协议 (Teardown Protocol)](#45-退出与内存擦除协议-teardown-protocol)
+   - [4.1 双 AI 引擎底座支持 (Google Antigravity & Gemini CLI)](#41-双-ai-引擎底座支持google-antigravity--gemini-cli)
+   - [4.2 纯易失性 RAM Disk 机制与工作空间](#42-纯易失性-ram-disk-机制与工作空间)
+   - [4.3 零磁盘日志与历史记录敏感词实时脱敏](#43-零磁盘日志与历史记录敏感词实时脱敏)
+   - [4.4 控制台专属命令详解 (HUD / Verify / Scan / AirGap / RPC / Shred)](#44-控制台专属命令详解)
+   - [4.5 原生 EVM 与 Starknet 钱包操作全流程](#45-原生-evm-与-starknet-钱包操作全流程)
+   - [4.6 退出与内存擦除协议 (Teardown Protocol)](#46-退出与内存擦除协议-teardown-protocol)
 5. [AI Agent 生态联动与 Model Context Protocol (MCP) 指南](#5-ai-agent-生态联动与-model-context-protocol-mcp-指南)
    - [5.1 AI 时代 Web3 开发者的全新攻击面](#51-ai-时代-web3-开发者的全新攻击面)
    - [5.2 客户端接入配置 (Cursor / Claude Desktop / Antigravity / Windsurf / Cline)](#52-客户端接入配置)
@@ -331,16 +332,38 @@ Usage: ironmac <command> [options]
 
 输入 `ironmac console` 后，你将进入 IronMac 的核心交互界面——**IronVault Ephemeral Console**。
 
-### 4.1 纯易失性 RAM Disk 机制与工作空间
+### 4.1 双 AI 引擎底座支持（Google Antigravity & Gemini CLI）
+
+IronMac v0.6.3+ 将控制台全面升级为 AI 原生 Web3 操作系统，支持选择 **Google Antigravity (`agy`)** 与 **Google Gemini CLI (`gemini`)** 作为底层智能引擎：
+
+* **启动参数与引擎选择**：
+  ```bash
+  ironmac console           # 智能探测：若同时安装 agy 与 gemini，弹出交互式菜单供选择
+  ironmac console --agy     # 快速直达 Google Antigravity 自主 Agent 底座 (-a)
+  ironmac console --gemini  # 快速直达 Google Gemini CLI 自然语言底座 (-g)
+  ironmac console --classic # 跳过 AI，直接进入经典零痕迹 Zsh Shell (-s)
+  ```
+  *(注：可通过在终端设置 `export IRONMAC_AI=agy` 或 `gemini` 固化默认引擎偏好)*
+
+* **两大 AI 引擎的能力定位**：
+  1. **Google Antigravity (`agy`)**：面向复杂任务的多步骤自主 Agent。内置规划能力与深层推理，可自主调配 IronMac 16 个 MCP 安全工具链完成复杂的审计、多链资金调度与异常排查。
+  2. **Google Gemini CLI (`gemini`)**：极简高效的自然语言交互终端。基于 Gemini 2.5 / Pro 模型，将自然语言意图无缝转化为链上调用，快速查余额、解码 Calldata 及构建交易。
+
+* **零知识密钥隔离与人类在环确认机制**：
+  - **私钥不进大模型上下文**：AI 生成的临时钱包通过抽象句柄（Handle/Alias）存放在 RAMDisk `/Volumes/IronVault/keys/` 中。明文私钥只通过 `/dev/tty` 物理屏幕带外打印给用户，MCP 接口在向 AI 返回数据时强制过滤脱敏。
+  - **交易执行必先模拟与确认**：任何转账或合约交互均先通过 `prepare_transaction` 在链上模拟（估算 Gas、检查余额并格式化 ASCII 卡片），最终调用 `execute_vault_transaction` 必须人类用户显式确认才广播。
+  - **随时降级与唤回**：在 AI 会话中键入 `/quit` 或 `exit` 即平滑降级至零痕迹 Zsh 终端；在 Zsh 终端随时输入 `ai`、`agy-ai` 或 `gemini-ai` 即可随时重返 AI 领航模式。
+
+### 4.2 纯易失性 RAM Disk 机制与工作空间
 控制台启动时，通过 `hdiutil attach -nomount ram://65536` 在 macOS 内存中动态申请 32MB 空间，并格式化为独立的 HFS+ 卷（挂载于 `/Volumes/IronVault_<PID>`）。
 - **完全隔离**：你在当前目录下创建的所有临时文件、下载的测试代码、生成的私钥全都在内存芯片中。
 - **固态盘零损耗与零残留**：现代 APFS 固态硬盘即使删除文件，仍可能在未 Trim 区域留下残片取证数据。RAM 虚拟盘断电即失、卸载即焚，彻底根除物理恢复风险。
 
-### 4.2 零磁盘日志与历史记录敏感词实时脱敏
+### 4.3 零磁盘日志与历史记录敏感词实时脱敏
 - 控制台临时重定向环境配置：`export HISTFILE=/dev/null`，`export SAVEHIST=0`。
 - 内置 **Zsh 敏感词拦截钩子 (`zshaddhistory`)**：即使在当前内存会话的上下键翻看历史中，只要命令行含有 64 位连续 HEX（私钥特征）或 `PRIVATE_KEY=`、`MNEMONIC=` 等关键词，该命令将被实时剔除出历史缓存，防止并排坐的旁人按上键窥探。
 
-### 4.3 控制台专属命令详解
+### 4.4 控制台专属命令详解
 
 在 IronVault 控制台中，内置了丰富的武器级实用命令：
 
@@ -435,7 +458,7 @@ finder  # 在 macOS 图形界面 Finder 中查看当前目录
 
 ---
 
-### 4.4 原生 EVM 与 Starknet 钱包操作全流程
+### 4.5 原生 EVM 与 Starknet 钱包操作全流程
 
 在内存盘中，你可以直接运行已集成的 Foundry `cast` 与 `starkli`：
 
@@ -470,7 +493,7 @@ starkli signer create ./starknet_signer.json
 
 ---
 
-### 4.5 退出与内存擦除协议 (Teardown Protocol)
+### 4.6 退出与内存擦除协议 (Teardown Protocol)
 
 操作完毕后，输入：
 ```bash
