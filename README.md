@@ -296,12 +296,18 @@ Every defensive capability and cryptographic tool in IronMac is **100% symmetric
 | **Cryptographic Shredder** | `shred <file>` | `shred_file` | DoD 3-pass CSPRNG random overwrite before unlinking |
 | **Keccak-256 Hasher** | `keccak <string>` | `calculate_keccak256` | Offline Keccak-256 hash & 4-byte ERC function selector |
 | **Key Custody Playbook** | `key-guide` / `wallet-guide` | `get_custody_playbook` | Operational security rules and forbidden storage vectors |
+| **Zero-Leak RAM Wallet** | `wallets` / `new-wallet` | `create_vault_wallet` | Out-of-band `/dev/tty` key display; zero keys in AI cloud context |
+| **Vault Wallets List** | `wallets` | `list_vault_wallets` | Inspects active RAMDisk keystores with redacting private keys |
+| **Multi-Chain Balance** | `cast balance` | `get_vault_wallet_balance` | Real-time JSON-RPC native balances (Base, ETH, Arb, Mantle, Sepolia) |
+| **Calldata Decoder & Scanner** | `cast 4byte-decode` | `decode_calldata` | Human-readable contract decoding & unlimited approval detection |
+| **Pre-Execution Card** | `cast estimate` | `prepare_transaction` | Gas simulation, balance verification & ASCII confirmation card |
+| **Intent-Based Execution** | `cast send` | `execute_vault_transaction` | Foundry signing in RAMDisk strictly gated by human confirmation |
 
 ---
 
 ### 4. Model Context Protocol (MCP) Tools Reference
 
-The IronMac MCP server runs over standard `stdio` and exposes 10 high-integrity tools:
+The IronMac MCP server runs over standard `stdio` and exposes 16 high-integrity tools:
 
 #### 1. `audit_system_security`
 * **Description:** Runs a live security audit of macOS host defenses.
@@ -354,6 +360,49 @@ The IronMac MCP server runs over standard `stdio` and exposes 10 high-integrity 
 
 #### 10. `get_custody_playbook`
 * **Description:** Returns the tactical Web3 private key custody rules, cold storage procedures, and forbidden persistence vectors. Matches `key-guide` in `ironconsole`.
+
+#### 11. `create_vault_wallet`
+* **Description:** Generates a cryptographic secp256k1 keypair in volatile RAMDisk (`/Volumes/IronVault/keys/`). Prints private key out-of-band directly to `/dev/tty` (physical terminal screen) and **strictly redacts** the private key from the AI cloud context.
+* **Parameters:**
+  - `alias` (string, required): Friendly identifier for the wallet (e.g. `'burner_base'`).
+  - `chain` (enum: `"base"` | `"ethereum"` | `"arbitrum"` | `"mantle"` | `"sepolia"`, default: `"base"`).
+  - `note` (string, optional): Usage purpose.
+
+#### 12. `list_vault_wallets`
+* **Description:** Lists all active ephemeral wallets currently stored in volatile RAMDisk. Private keys remain safely quarantined and are never returned to the LLM context.
+
+#### 13. `get_vault_wallet_balance`
+* **Description:** Queries real-time native token balance (ETH, MNT) for a vault wallet alias or address across EVM networks via JSON-RPC.
+* **Parameters:**
+  - `alias_or_address` (string, required): Wallet alias in RAM vault or 0x address.
+  - `chain` (enum: `"base"` | `"ethereum"` | `"arbitrum"` | `"mantle"` | `"sepolia"`, default: `"base"`).
+
+#### 14. `decode_calldata`
+* **Description:** Decodes raw EVM calldata (ERC-20 transfers, approvals, WETH wrapping, NFT operators, Uniswap router methods) into human-readable descriptions and screens for critical security risks (e.g. unlimited approvals, token draining backdoors, zero-address burns).
+* **Parameters:**
+  - `calldata` (string, required): Raw hex calldata starting with `0x`.
+  - `to_contract` (string, optional): Target contract address.
+  - `chain` (string, default: `"base"`).
+
+#### 15. `prepare_transaction`
+* **Description:** Prepares a safe on-chain transaction from an ephemeral vault wallet. Validates destination EIP-55 format, checks sender balance, simulates the transaction on-chain via `cast estimate` to detect reverts before broadcasting, and formats an ASCII Pre-Execution Card for the user.
+* **Parameters:**
+  - `alias` (string, required): Sending wallet alias in RAM vault.
+  - `to` (string, required): Destination address or contract.
+  - `value_eth` (string, default: `"0"`): Native token amount to transfer.
+  - `data` (string, default: `"0x"`): Hex calldata.
+  - `chain` (enum: `"base"` | `"ethereum"` | `"arbitrum"` | `"mantle"` | `"sepolia"`, default: `"base"`).
+
+#### 16. `execute_vault_transaction`
+* **Description:** Broadcasts a prepared transaction using Foundry `cast` with the private key held strictly in RAM. **Mandates human-in-the-loop explicit confirmation** (`user_confirmed: true`). Private keys never leak into context or command history.
+* **Parameters:**
+  - `alias` (string, required): Sending wallet alias in RAM vault.
+  - `to` (string, required): Destination address.
+  - `value_eth` (string, optional): Native token amount to transfer.
+  - `data` (string, optional): Hex calldata.
+  - `chain` (enum: `"base"` | `"ethereum"` | `"arbitrum"` | `"mantle"` | `"sepolia"`).
+  - `user_confirmed` (boolean, required): **Must be true**. Aborts execution if false.
+
 
 ---
 
@@ -466,7 +515,7 @@ IronMac pairs CLI-grade security with native macOS desktop ergonomics. You can m
 
 ```text
        ┌────────────────────────────────────────────────────────┐
-       │ [*] IronMac Fortress v0.6.0                            │
+       │ [*] IronMac Fortress v0.6.1                            │
        │ ● Active Defenses: ARMED                               │
        │ ────────────────────────────────────────────────────── │
        │ > Launch IronVault Console                         ⌘C   │

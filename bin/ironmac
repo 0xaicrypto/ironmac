@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.6.0"
+VERSION="0.6.1"
 # Resolve real source directory even if called through symlinks (e.g. ~/.local/bin/ironmac)
 TARGET="${BASH_SOURCE[0]}"
 while [ -L "$TARGET" ]; do

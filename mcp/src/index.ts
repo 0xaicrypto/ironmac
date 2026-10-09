@@ -21,6 +21,7 @@ import os from "node:os";
 import crypto from "node:crypto";
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 // Resolve IronMac root directory
 const SCRIPT_DIR = path.dirname(new URL(import.meta.url).pathname);
@@ -236,6 +237,98 @@ const TOOLS: Tool[] = [
         },
       },
       required: ["alias_or_address"],
+    },
+  },
+  {
+    name: "decode_calldata",
+    description:
+      "Decodes raw EVM calldata (ERC-20 transfers, approvals, WETH, NFT safeTransferFrom, Uniswap) into human-readable plain language and scans for critical security risks (e.g. unlimited token approvals, token draining backdoors, zero-address burning).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        calldata: {
+          type: "string",
+          description: "Raw hex calldata starting with 0x (minimum 10 characters for selector)",
+        },
+        to_contract: {
+          type: "string",
+          description: "Target contract address (optional)",
+        },
+        chain: {
+          type: "string",
+          enum: ["base", "ethereum", "arbitrum", "mantle", "sepolia"],
+          description: "Blockchain network context (defaults to 'base')",
+        },
+      },
+      required: ["calldata"],
+    },
+  },
+  {
+    name: "prepare_transaction",
+    description:
+      "Prepares a safe on-chain transaction from an ephemeral vault wallet, performs balance checking, decodes any calldata, checks address poisoning, and formats an ASCII Pre-Execution Card for the user to confirm before broadcasting.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        alias: {
+          type: "string",
+          description: "Sending wallet alias stored in RAM vault (e.g. 'burner_base')",
+        },
+        to: {
+          type: "string",
+          description: "Destination recipient address or contract (0x...)",
+        },
+        value_eth: {
+          type: "string",
+          description: "Amount of native token (ETH/MNT) to transfer (e.g. '0.01', defaults to '0')",
+        },
+        data: {
+          type: "string",
+          description: "Hex calldata to invoke on target contract (defaults to '0x')",
+        },
+        chain: {
+          type: "string",
+          enum: ["base", "ethereum", "arbitrum", "mantle", "sepolia"],
+          description: "Blockchain network (defaults to 'base')",
+        },
+      },
+      required: ["alias", "to"],
+    },
+  },
+  {
+    name: "execute_vault_transaction",
+    description:
+      "Broadcasts a prepared transaction using Foundry cast with the local ephemeral wallet's private key held strictly in RAM. Requires user_confirmed: true (human-in-the-loop). Private key is never leaked.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        alias: {
+          type: "string",
+          description: "Sending wallet alias in RAM vault",
+        },
+        to: {
+          type: "string",
+          description: "Destination address",
+        },
+        value_eth: {
+          type: "string",
+          description: "Amount of native token (ETH) to transfer",
+        },
+        data: {
+          type: "string",
+          description: "Hex calldata (defaults to '0x')",
+        },
+        chain: {
+          type: "string",
+          enum: ["base", "ethereum", "arbitrum", "mantle", "sepolia"],
+          description: "Blockchain network",
+        },
+        user_confirmed: {
+          type: "boolean",
+          description: "MUST BE TRUE. Confirms that the user has explicitly reviewed the Pre-Execution Card and approved signing.",
+        },
+      },
+      required: ["alias", "to", "user_confirmed"],
     },
   },
 ];
@@ -595,7 +688,7 @@ const NETWORK_RPCS: Record<
   sepolia: {
     chain_id: 11155111,
     name: "Sepolia Testnet",
-    rpc_url: "https://rpc.sepolia.org",
+    rpc_url: "https://ethereum-sepolia-rpc.publicnode.com",
     currency: "ETH",
     explorer: "https://sepolia.etherscan.io",
   },
@@ -971,13 +1064,612 @@ async function getVaultWalletBalance(aliasOrAddress: string, chain: string = "ba
   }
 }
 
+function getCastPath(): string {
+  const foundryBin = path.join(os.homedir(), ".foundry/bin/cast");
+  if (fs.existsSync(foundryBin)) {
+    return foundryBin;
+  }
+  return "cast";
+}
+
+function sanitizeOutput(text: string, sensitiveKey?: string): string {
+  let cleaned = text;
+  if (sensitiveKey) {
+    const rawKey = sensitiveKey.replace(/^0x/, "");
+    cleaned = cleaned.split(sensitiveKey).join("[REDACTED_PRIVATE_KEY]");
+    cleaned = cleaned.split(rawKey).join("[REDACTED_PRIVATE_KEY]");
+  }
+  return cleaned;
+}
+
+function ethToWei(ethStr: string): bigint {
+  try {
+    const parts = ethStr.trim().split(".");
+    const whole = BigInt(parts[0] || "0");
+    const wholeWei = whole * 1000000000000000000n;
+    if (parts.length > 1) {
+      const decimals = parts[1].padEnd(18, "0").slice(0, 18);
+      return wholeWei + BigInt(decimals);
+    }
+    return wholeWei;
+  } catch {
+    return 0n;
+  }
+}
+
+interface DecodedCalldataResult {
+  calldata: string;
+  is_empty?: boolean;
+  selector?: string;
+  signature?: string;
+  method?: string;
+  parameters?: Record<string, any>;
+  risk_level: "LOW" | "SUSPICIOUS" | "HIGH_RISK" | "CRITICAL_RISK";
+  warnings: string[];
+  plain_description: string;
+  action_summary: string;
+}
+
+async function decodeCalldata(
+  calldataInput: string,
+  toContract?: string,
+  chain: string = "base"
+): Promise<DecodedCalldataResult> {
+  const cd = calldataInput ? calldataInput.trim() : "0x";
+
+  if (cd === "0x" || cd === "" || cd.toLowerCase() === "0x") {
+    return {
+      calldata: "0x",
+      is_empty: true,
+      risk_level: "LOW",
+      warnings: [],
+      plain_description: "Standard native currency transfer or call without calldata.",
+      action_summary: "Native Transfer / Plain Call",
+    };
+  }
+
+  if (!cd.startsWith("0x")) {
+    return {
+      calldata: cd,
+      risk_level: "SUSPICIOUS",
+      warnings: ["Calldata does not start with '0x' prefix."],
+      plain_description: "Malformed calldata format.",
+      action_summary: "Malformed Calldata",
+    };
+  }
+
+  if (cd.length < 10) {
+    return {
+      calldata: cd,
+      risk_level: "SUSPICIOUS",
+      warnings: ["Calldata is shorter than 4 bytes (8 hex characters plus 0x)."],
+      plain_description: "Incomplete calldata / truncated selector.",
+      action_summary: "Short Calldata",
+    };
+  }
+
+  const selector = cd.slice(0, 10).toLowerCase();
+  const body = cd.slice(10);
+  const warnings: string[] = [];
+  let riskLevel: "LOW" | "SUSPICIOUS" | "HIGH_RISK" | "CRITICAL_RISK" = "LOW";
+  let method = "Unknown";
+  let signature = "unknown";
+  let parameters: Record<string, any> = {};
+  let plainDesc = "";
+  let actionSummary = "";
+
+  const getWord = (index: number) => {
+    const start = index * 64;
+    return body.slice(start, start + 64).padEnd(64, "0");
+  };
+  const getAddress = (index: number) => {
+    const word = getWord(index);
+    return toChecksumAddress("0x" + word.slice(24, 64));
+  };
+  const getUint256 = (index: number) => {
+    const word = getWord(index);
+    try {
+      return BigInt("0x" + word);
+    } catch {
+      return 0n;
+    }
+  };
+
+  // 1. ERC-20 transfer(address to, uint256 amount) - 0xa9059cbb
+  if (selector === "0xa9059cbb") {
+    method = "transfer";
+    signature = "transfer(address,uint256)";
+    const recipient = getAddress(0);
+    const amount = getUint256(1);
+    parameters = { to: recipient, amount: amount.toString() };
+
+    if (
+      recipient === "0x0000000000000000000000000000000000000000" ||
+      recipient.toLowerCase() === "0x000000000000000000000000000000000000dead"
+    ) {
+      riskLevel = "HIGH_RISK";
+      warnings.push("CRITICAL: Transfer target is the zero address or dead address! This will permanently burn these tokens.");
+    }
+    actionSummary = "ERC-20 Token Transfer";
+    plainDesc = `Transfer ${amount.toString()} tokens to recipient ${recipient}.`;
+  }
+  // 2. ERC-20 approve(address spender, uint256 amount) - 0x095ea7b3
+  else if (selector === "0x095ea7b3") {
+    method = "approve";
+    signature = "approve(address,uint256)";
+    const spender = getAddress(0);
+    const amount = getUint256(1);
+    parameters = { spender, amount: amount.toString() };
+
+    const maxUint256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935n;
+    const isUnlimited =
+      amount >= 2n ** 255n - 1n ||
+      amount === maxUint256 ||
+      getWord(1).toLowerCase().includes("ffffffffffffffff");
+
+    if (isUnlimited) {
+      riskLevel = "CRITICAL_RISK";
+      warnings.push(
+        "CRITICAL ALERT: Unlimited token approval detected (type(uint256).max)!",
+        `Spender (${spender}) is granted permission to withdraw ALL of your tokens at any point in the future.`,
+        "If this spender contract is malicious, upgradeable, or later exploited, 100% of your tokens in this contract can be drained."
+      );
+      actionSummary = "UNLIMITED Token Approval (High Risk)";
+      plainDesc = `Approve UNLIMITED allowance for spender ${spender} to spend all your tokens without limit.`;
+    } else if (amount === 0n) {
+      riskLevel = "LOW";
+      actionSummary = "Revoke Token Approval";
+      plainDesc = `Revoke approval (set allowance to 0) for spender ${spender}.`;
+    } else {
+      riskLevel = "LOW";
+      actionSummary = "Limited Token Approval";
+      plainDesc = `Approve spender ${spender} to spend up to ${amount.toString()} tokens.`;
+    }
+  }
+  // 3. ERC-20 transferFrom(address from, address to, uint256 amount) - 0x23b87266
+  else if (selector === "0x23b87266") {
+    method = "transferFrom";
+    signature = "transferFrom(address,address,uint256)";
+    const fromAddr = getAddress(0);
+    const toAddr = getAddress(1);
+    const amount = getUint256(2);
+    parameters = { from: fromAddr, to: toAddr, amount: amount.toString() };
+    actionSummary = "ERC-20 transferFrom";
+    plainDesc = `Transfer ${amount.toString()} tokens from ${fromAddr} to ${toAddr} using allowance.`;
+  }
+  // 4. ERC-721 setApprovalForAll(address operator, bool approved) - 0xa22cb465
+  else if (selector === "0xa22cb465") {
+    method = "setApprovalForAll";
+    signature = "setApprovalForAll(address,bool)";
+    const operator = getAddress(0);
+    const approved = getWord(1).replace(/^0+/, "") === "1";
+    parameters = { operator, approved };
+
+    if (approved) {
+      riskLevel = "HIGH_RISK";
+      warnings.push(
+        "ALERT: Full NFT collection delegation (setApprovalForAll = true)!",
+        `Operator (${operator}) is granted permission to transfer EVERY NFT in this collection from your wallet.`
+      );
+      actionSummary = "NFT Collection Operator Delegation";
+      plainDesc = `Grant operator ${operator} full control to manage and transfer all NFTs in this collection.`;
+    } else {
+      actionSummary = "Revoke NFT Collection Delegation";
+      plainDesc = `Revoke collection operator permissions from ${operator}.`;
+    }
+  }
+  // 5. ERC-721 safeTransferFrom(address from, address to, uint256 tokenId) - 0x42842e0e
+  else if (selector === "0x42842e0e") {
+    method = "safeTransferFrom";
+    signature = "safeTransferFrom(address,address,uint256)";
+    const fromAddr = getAddress(0);
+    const toAddr = getAddress(1);
+    const tokenId = getUint256(2);
+    parameters = { from: fromAddr, to: toAddr, tokenId: tokenId.toString() };
+    actionSummary = "NFT Transfer";
+    plainDesc = `Transfer NFT #${tokenId.toString()} from ${fromAddr} to ${toAddr}.`;
+  }
+  // 6. WETH deposit() - 0xd0e30db0
+  else if (selector === "0xd0e30db0") {
+    method = "deposit";
+    signature = "deposit()";
+    actionSummary = "WETH Wrap Deposit";
+    plainDesc = "Wrap native ETH into canonical Wrapped ETH (WETH).";
+  }
+  // 7. WETH withdraw(uint256 wad) - 0x2e1a7d4d
+  else if (selector === "0x2e1a7d4d") {
+    method = "withdraw";
+    signature = "withdraw(uint256)";
+    const wad = getUint256(0);
+    parameters = { wad: wad.toString() };
+    actionSummary = "WETH Unwrap Withdrawal";
+    plainDesc = `Unwrap ${wad.toString()} WETH back into native ETH.`;
+  }
+  // Fallback to cast 4byte-decode
+  else {
+    try {
+      const castBin = getCastPath();
+      const { stdout } = await execFileAsync(castBin, ["4byte-decode", cd]);
+      const trimmed = stdout.trim();
+      if (trimmed && !trimmed.includes("No signatures found")) {
+        const lines = trimmed.split("\n");
+        const sigMatch = lines[0].match(/"([^"]+)"/);
+        signature = sigMatch ? sigMatch[1] : lines[0];
+        method = signature.split("(")[0];
+        actionSummary = `Contract Method: ${method}`;
+        plainDesc = `Invoking contract method ${signature} with ${lines.length - 1} decoded parameter lines.`;
+
+        const lowerSig = signature.toLowerCase();
+        if (
+          lowerSig.includes("permit") ||
+          lowerSig.includes("delegat") ||
+          lowerSig.includes("drain") ||
+          lowerSig.includes("sweep") ||
+          lowerSig.includes("owner")
+        ) {
+          riskLevel = "HIGH_RISK";
+          warnings.push(
+            `Contract method '${method}' involves administrative or authorization delegation logic. Verify destination address carefully.`
+          );
+        }
+        parameters = { decoded_raw: lines.slice(1).map((l) => l.trim()) };
+      } else {
+        riskLevel = "SUSPICIOUS";
+        signature = `unknown(${selector})`;
+        method = selector;
+        actionSummary = "Unverified Calldata";
+        plainDesc = `Invoking unverified method selector ${selector} with ${Math.floor(body.length / 2)} bytes payload.`;
+        warnings.push(
+          "Calldata does not match any known function signature in public 4byte registries. Exercise caution against blind signing."
+        );
+      }
+    } catch {
+      riskLevel = "SUSPICIOUS";
+      signature = `unknown(${selector})`;
+      method = selector;
+      actionSummary = "Unverified Calldata";
+      plainDesc = `Invoking method selector ${selector} with ${Math.floor(body.length / 2)} bytes payload.`;
+      warnings.push("Unable to resolve signature via 4byte registry. Potential blind-signing risk.");
+    }
+  }
+
+  return {
+    calldata: cd,
+    selector,
+    signature,
+    method,
+    parameters,
+    risk_level: riskLevel,
+    warnings,
+    plain_description: plainDesc,
+    action_summary: actionSummary,
+  };
+}
+
+interface PrepareTransactionArgs {
+  alias: string;
+  to: string;
+  value_eth?: string;
+  data?: string;
+  chain?: string;
+}
+
+async function prepareTransaction(args: PrepareTransactionArgs) {
+  const alias = String(args.alias ?? "").trim().toLowerCase();
+  if (!alias) {
+    return { error: "Sender alias cannot be empty." };
+  }
+
+  const keysDir = getVaultKeysDir();
+  const keyFile = path.join(keysDir, `${alias}.json`);
+  if (!fs.existsSync(keyFile)) {
+    return {
+      error: `Sender wallet '${alias}' not found in active RAM vault. Available wallets can be seen with list_vault_wallets.`,
+    };
+  }
+
+  let senderData: any;
+  try {
+    senderData = JSON.parse(fs.readFileSync(keyFile, "utf-8"));
+  } catch (err: any) {
+    return { error: `Failed to read wallet file for '${alias}': ${err.message}` };
+  }
+
+  const senderAddress = senderData.address;
+  const toAddress = String(args.to ?? "").trim();
+  const valueEth = String(args.value_eth ?? "0").trim();
+  const calldata = String(args.data ?? "0x").trim();
+  const chain = String(args.chain ?? senderData.chain ?? "base").toLowerCase().trim();
+
+  // Validate destination address
+  const addrCheck = verifyAddress(toAddress, "evm");
+  if (!addrCheck.is_valid_format) {
+    return {
+      error: `Invalid destination recipient address: '${toAddress}'`,
+      warnings: addrCheck.warnings,
+    };
+  }
+  const destination = addrCheck.checksummed_address!;
+
+  const rpcInfo = NETWORK_RPCS[chain] || NETWORK_RPCS.base;
+
+  // Query sender balance
+  const balRes = await getVaultWalletBalance(senderAddress, chain);
+  const currentWeiBalance = BigInt(balRes.balance_wei || "0");
+  const requiredWei = ethToWei(valueEth);
+
+  const balanceWarnings: string[] = [];
+  let isBalanceSufficient = true;
+  if (currentWeiBalance < requiredWei) {
+    isBalanceSufficient = false;
+    balanceWarnings.push(
+      `Insufficient funds: Balance is ${balRes.balance_formatted}, but sending ${valueEth} ${rpcInfo.currency} requires more funds.`
+    );
+  }
+
+  // Decode Calldata
+  const decoded = await decodeCalldata(calldata, destination, chain);
+
+  // Simulation & Gas Estimation via cast estimate
+  const castBin = getCastPath();
+  let estimatedGasUnits = "21000";
+  let estimatedGasCostEth = "0.00005";
+  let simulationStatus: "SUCCESS" | "REVERT_DETECTED" | "SKIPPED" = "SUCCESS";
+  let simulationError: string | null = null;
+
+  try {
+    const estimateArgs = ["estimate", "-f", senderAddress, "--rpc-url", rpcInfo.rpc_url, destination];
+    if (valueEth && valueEth !== "0") {
+      estimateArgs.push("--value", `${valueEth}ether`);
+    }
+    if (calldata && calldata !== "0x" && calldata.length >= 10) {
+      estimateArgs.push(calldata);
+    }
+    const { stdout: gasUnitsOut } = await execFileAsync(castBin, estimateArgs);
+    estimatedGasUnits = gasUnitsOut.trim().split("\n")[0].trim();
+
+    // Also get cost
+    try {
+      const costArgs = ["estimate", "--cost", "-f", senderAddress, "--rpc-url", rpcInfo.rpc_url, destination];
+      if (valueEth && valueEth !== "0") {
+        costArgs.push("--value", `${valueEth}ether`);
+      }
+      if (calldata && calldata !== "0x" && calldata.length >= 10) {
+        costArgs.push(calldata);
+      }
+      const { stdout: costOut } = await execFileAsync(castBin, costArgs);
+      estimatedGasCostEth = costOut.trim().split("\n")[0].trim();
+    } catch {}
+  } catch (err: any) {
+    simulationStatus = "REVERT_DETECTED";
+    const rawError = err.stderr || err.stdout || err.message || "";
+    const revertMatch = rawError.match(/execution reverted:? ([^\n",]+)/i);
+    simulationError = revertMatch ? revertMatch[1].trim() : rawError.trim().slice(0, 140);
+  }
+
+  // Aggregate Risk Assessment
+  let overallRisk: "LOW" | "SUSPICIOUS" | "HIGH_RISK" | "CRITICAL_RISK" = "LOW";
+  const allWarnings: string[] = [...addrCheck.warnings, ...balanceWarnings, ...decoded.warnings];
+
+  if (simulationStatus === "REVERT_DETECTED") {
+    overallRisk = "CRITICAL_RISK";
+    allWarnings.unshift(`TRANSACTION SIMULATION REVERTED: ${simulationError || "Will fail on-chain"}`);
+  } else if (decoded.risk_level === "CRITICAL_RISK") {
+    overallRisk = "CRITICAL_RISK";
+  } else if (decoded.risk_level === "HIGH_RISK") {
+    overallRisk = "HIGH_RISK";
+  } else if (
+    addrCheck.risk_level === "SUSPICIOUS" ||
+    decoded.risk_level === "SUSPICIOUS" ||
+    !isBalanceSufficient
+  ) {
+    overallRisk = "SUSPICIOUS";
+  }
+
+  // Build ASCII Pre-Execution Card
+  const riskColor =
+    overallRisk === "LOW" ? "\x1b[32m" : overallRisk === "SUSPICIOUS" ? "\x1b[33m" : "\x1b[31m\x1b[1m";
+  const resetColor = "\x1b[0m";
+
+  const cardLines = [
+    `\n${riskColor}┌────────────────────────────────────────────────────────────────────────┐${resetColor}`,
+    `${riskColor}│\x1b[0m \x1b[1m🛡️  IRONMAC PRE-EXECUTION TRANSACTION CARD\x1b[0m                              ${riskColor}│${resetColor}`,
+    `${riskColor}├────────────────────────────────────────────────────────────────────────┤${resetColor}`,
+    `${riskColor}│\x1b[0m • \x1b[1mSending Vault    \x1b[0m: \x1b[38;5;214m${alias}\x1b[0m (${senderAddress})`,
+    `${riskColor}│\x1b[0m • \x1b[1mNetwork / Chain  \x1b[0m: ${rpcInfo.name} (Chain ID: ${rpcInfo.chain_id})`,
+    `${riskColor}│\x1b[0m • \x1b[1mDestination      \x1b[0m: \x1b[38;5;82m${destination}\x1b[0m`,
+    `${riskColor}│\x1b[0m • \x1b[1mTransfer Value   \x1b[0m: \x1b[1m${valueEth} ${rpcInfo.currency}\x1b[0m`,
+    `${riskColor}│\x1b[0m • \x1b[1mAction Summary   \x1b[0m: ${decoded.action_summary}`,
+    `${riskColor}│\x1b[0m • \x1b[1mEstimated Gas    \x1b[0m: ${estimatedGasUnits} units (~${estimatedGasCostEth} ${rpcInfo.currency})`,
+    `${riskColor}│\x1b[0m • \x1b[1mSimulation Check \x1b[0m: ${
+      simulationStatus === "SUCCESS" ? "\x1b[32mPASSED (No revert)\x1b[0m" : "\x1b[31mREVERT DETECTED\x1b[0m"
+    }`,
+    `${riskColor}│\x1b[0m • \x1b[1mRisk Assessment  \x1b[0m: ${riskColor}${overallRisk}${resetColor}`,
+    `${riskColor}├────────────────────────────────────────────────────────────────────────┤${resetColor}`,
+    `${riskColor}│\x1b[0m \x1b[1mHuman-Readable Meaning:\x1b[0m`,
+    `${riskColor}│\x1b[0m   ${decoded.plain_description}`,
+  ];
+
+  if (allWarnings.length > 0) {
+    cardLines.push(`${riskColor}├────────────────────────────────────────────────────────────────────────┤${resetColor}`);
+    cardLines.push(`${riskColor}│\x1b[0m \x1b[1m⚠️  SECURITY WARNINGS:\x1b[0m`);
+    for (const w of allWarnings) {
+      cardLines.push(`${riskColor}│\x1b[0m   - ${w}`);
+    }
+  }
+
+  cardLines.push(`${riskColor}├────────────────────────────────────────────────────────────────────────┤${resetColor}`);
+  cardLines.push(`${riskColor}│\x1b[0m \x1b[1mHuman-in-the-Loop Confirmation Required:\x1b[0m`);
+  cardLines.push(`${riskColor}│\x1b[0m To broadcast this transaction, the user must explicitly confirm.`);
+  cardLines.push(
+    `${riskColor}│\x1b[0m Command: execute_vault_transaction(alias='${alias}', to='${destination}', user_confirmed=true)`
+  );
+  cardLines.push(`${riskColor}└────────────────────────────────────────────────────────────────────────┘${resetColor}\n`);
+
+  const asciiCard = cardLines.join("\n");
+
+  return {
+    status: simulationStatus === "REVERT_DETECTED" ? "simulation_reverted" : "ready_for_confirmation",
+    sender: {
+      alias,
+      address: senderAddress,
+      balance: balRes.balance_formatted,
+      is_balance_sufficient: isBalanceSufficient,
+    },
+    destination: {
+      address: destination,
+      checksum_status: addrCheck.checksum_status,
+      risk_level: addrCheck.risk_level,
+    },
+    value: {
+      eth: valueEth,
+      currency: rpcInfo.currency,
+      wei: requiredWei.toString(),
+    },
+    decoded_calldata: decoded,
+    simulation: {
+      status: simulationStatus,
+      estimated_gas_units: estimatedGasUnits,
+      estimated_cost: `${estimatedGasCostEth} ${rpcInfo.currency}`,
+      revert_reason: simulationError,
+    },
+    risk_level: overallRisk,
+    warnings: allWarnings,
+    pre_execution_card: asciiCard,
+    confirmation_required: true,
+    guidance:
+      overallRisk === "CRITICAL_RISK"
+        ? "CRITICAL WARNING: This transaction has high risk or will revert. Recommend against signing unless deliberately intended."
+        : "Present this Pre-Execution Card clearly to the user. Do not call execute_vault_transaction until the user explicitly responds with approval.",
+  };
+}
+
+interface ExecuteTransactionArgs {
+  alias: string;
+  to: string;
+  value_eth?: string;
+  data?: string;
+  chain?: string;
+  user_confirmed?: boolean;
+}
+
+async function executeVaultTransaction(args: ExecuteTransactionArgs) {
+  if (args.user_confirmed !== true) {
+    return {
+      status: "aborted",
+      error:
+        "Human confirmation missing! 'user_confirmed' must be true. Transactions can only be broadcast after explicit user consent.",
+      guidance:
+        "Display the Pre-Execution Card to the user first and request confirmation before setting user_confirmed=true.",
+    };
+  }
+
+  const alias = String(args.alias ?? "").trim().toLowerCase();
+  const keysDir = getVaultKeysDir();
+  const keyFile = path.join(keysDir, `${alias}.json`);
+  if (!fs.existsSync(keyFile)) {
+    return { error: `Wallet alias '${alias}' not found in active RAM vault.` };
+  }
+
+  let walletData: any;
+  try {
+    walletData = JSON.parse(fs.readFileSync(keyFile, "utf-8"));
+  } catch (err: any) {
+    return { error: `Failed to read wallet file for '${alias}': ${err.message}` };
+  }
+
+  const privateKey = walletData.private_key;
+  if (!privateKey) {
+    return { error: `Private key missing in vault record for '${alias}'.` };
+  }
+
+  const to = String(args.to ?? "").trim();
+  const valueEth = String(args.value_eth ?? "0").trim();
+  const data = String(args.data ?? "0x").trim();
+  const chain = String(args.chain ?? walletData.chain ?? "base").toLowerCase().trim();
+  const rpcInfo = NETWORK_RPCS[chain] || NETWORK_RPCS.base;
+
+  const castBin = getCastPath();
+  const castArgs = [
+    "send",
+    to,
+    "--private-key",
+    privateKey,
+    "--rpc-url",
+    rpcInfo.rpc_url,
+    "--json",
+  ];
+
+  if (valueEth && valueEth !== "0") {
+    castArgs.push("--value", `${valueEth}ether`);
+  }
+  if (data && data !== "0x" && data.length >= 10) {
+    castArgs.push("--data", data);
+  }
+
+  try {
+    const { stdout, stderr } = await execFileAsync(castBin, castArgs);
+    const sanitizedStdout = sanitizeOutput(stdout, privateKey);
+
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(sanitizedStdout);
+    } catch {}
+
+    const txHash =
+      parsed?.transactionHash ||
+      parsed?.txHash ||
+      (sanitizedStdout.match(/0x[a-fA-F0-9]{64}/) ? sanitizedStdout.match(/0x[a-fA-F0-9]{64}/)![0] : "unknown");
+    const blockNumber = parsed?.blockNumber ? parseInt(parsed.blockNumber, 16) || parsed.blockNumber : null;
+    const gasUsed = parsed?.gasUsed ? parseInt(parsed.gasUsed, 16) || parsed.gasUsed : null;
+
+    return {
+      status: "success",
+      transaction_hash: txHash,
+      explorer_link: `${rpcInfo.explorer}/tx/${txHash}`,
+      network: rpcInfo.name,
+      sender: {
+        alias,
+        address: walletData.address,
+      },
+      destination: to,
+      value_transferred: `${valueEth} ${rpcInfo.currency}`,
+      block_number: blockNumber,
+      gas_used: gasUsed,
+      security_quarantine:
+        "Private key remained in RAMDisk (/Volumes/IronVault/) and was never exposed to context.",
+    };
+  } catch (err: any) {
+    const rawError = (err.stderr || "") + "\n" + (err.stdout || "") + "\n" + (err.message || "");
+    const sanitizedErr = sanitizeOutput(rawError, privateKey);
+    let readableError = sanitizedErr.trim();
+
+    try {
+      const errJson = JSON.parse(sanitizeOutput(err.stdout || "", privateKey));
+      if (errJson?.errors?.[0]?.message) {
+        readableError = errJson.errors[0].message;
+      }
+    } catch {}
+
+    return {
+      status: "failed",
+      error: readableError,
+      network: rpcInfo.name,
+      sender: walletData.address,
+      destination: to,
+      security_notice:
+        "Transaction was rejected or reverted. Private key was sanitized from all error output.",
+    };
+  }
+}
+
 // --- Start MCP Server ---
 
 async function main() {
   const server = new Server(
     {
       name: "ironmac-mcp",
-      version: "0.6.0",
+      version: "0.6.1",
     },
     {
       capabilities: {
@@ -1059,6 +1751,39 @@ async function main() {
           const aliasOrAddress = String(args?.alias_or_address ?? "");
           const chain = String(args?.chain ?? "base");
           const result = await getVaultWalletBalance(aliasOrAddress, chain);
+          return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+        }
+        case "decode_calldata": {
+          const calldata = String(args?.calldata ?? "");
+          const toContract = args?.to_contract ? String(args.to_contract) : undefined;
+          const chain = String(args?.chain ?? "base");
+          const result = await decodeCalldata(calldata, toContract, chain);
+          return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+        }
+        case "prepare_transaction": {
+          const alias = String(args?.alias ?? "");
+          const to = String(args?.to ?? "");
+          const valueEth = args?.value_eth ? String(args.value_eth) : "0";
+          const data = args?.data ? String(args.data) : "0x";
+          const chain = String(args?.chain ?? "base");
+          const result = await prepareTransaction({ alias, to, value_eth: valueEth, data, chain });
+          return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+        }
+        case "execute_vault_transaction": {
+          const alias = String(args?.alias ?? "");
+          const to = String(args?.to ?? "");
+          const valueEth = args?.value_eth ? String(args.value_eth) : "0";
+          const data = args?.data ? String(args.data) : "0x";
+          const chain = String(args?.chain ?? "base");
+          const userConfirmed = Boolean(args?.user_confirmed ?? false);
+          const result = await executeVaultTransaction({
+            alias,
+            to,
+            value_eth: valueEth,
+            data,
+            chain,
+            user_confirmed: userConfirmed,
+          });
           return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
         }
         default:
