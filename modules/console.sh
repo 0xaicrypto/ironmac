@@ -45,7 +45,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo ""
-echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONMAC // SECURE VAULT CONSOLE v0.6.3 ]${RESET}${GRAY}────────────────────────┐${RESET}"
+echo -e "${GRAY}┌──${RESET}${BOLD}${CYAN}[ ⚡ IRONMAC // SECURE VAULT CONSOLE v0.6.4 ]${RESET}${GRAY}────────────────────────┐${RESET}"
 
 # 1. Mount 32MB Ephemeral RAM Disk (if supported)
 RAW_DEV=$(hdiutil attach -nomount ram://65536 2>/dev/null | awk '{print $1}' || true)
@@ -167,6 +167,21 @@ alias check-address="verify-address"
 alias eip55="verify-address"
 alias secret-scan="scan-secrets"
 alias secrets="scan-secrets"
+alias alphanalyzor="open-bridge https://alphanalyzor.trade"
+alias radar="open-bridge https://alphanalyzor.trade"
+alias bridge="open-bridge"
+
+open-bridge() {
+    local url="${1:-https://alphanalyzor.trade}"
+    echo -e "\033[38;5;51m🌐 Opening Execution Bridge in Isolated Vault Browser...\033[0m"
+    if command -v ironmac >/dev/null 2>&1; then
+        ironmac vault-browser "$url"
+    elif [[ -x "${IRONMAC_HOME}/modules/vault_browser.sh" ]]; then
+        bash "${IRONMAC_HOME}/modules/vault_browser.sh" "$url"
+    else
+        open "$url"
+    fi
+}
 
 # MCP-Aligned Security Functions
 audit() {
@@ -772,7 +787,15 @@ chmod 700 "${KEYS_DIR}"
 GEMINI_DIR="${MOUNT_POINT}/.gemini"
 mkdir -p "${GEMINI_DIR}"
 
-cat <<EOF_SETTINGS > "${GEMINI_DIR}/settings.json"
+AGENTS_DIR="${MOUNT_POINT}/.agents"
+mkdir -p "${AGENTS_DIR}"
+
+if [[ -f "${HOME}/.gemini/config/mcp_config.json" ]]; then
+    cp "${HOME}/.gemini/config/mcp_config.json" "${GEMINI_DIR}/settings.json"
+    cp "${HOME}/.gemini/config/mcp_config.json" "${AGENTS_DIR}/mcp_config.json"
+    cp "${HOME}/.gemini/config/mcp_config.json" "${MOUNT_POINT}/mcp_config.json"
+else
+    cat <<EOF_SETTINGS > "${GEMINI_DIR}/settings.json"
 {
   "mcpServers": {
     "ironmac": {
@@ -783,11 +806,7 @@ cat <<EOF_SETTINGS > "${GEMINI_DIR}/settings.json"
 }
 EOF_SETTINGS
 
-# Antigravity (agy) Workspace & MCP Configuration
-AGENTS_DIR="${MOUNT_POINT}/.agents"
-mkdir -p "${AGENTS_DIR}"
-
-cat <<EOF_AGY_SETTINGS > "${AGENTS_DIR}/mcp_config.json"
+    cat <<EOF_AGY_SETTINGS > "${AGENTS_DIR}/mcp_config.json"
 {
   "mcpServers": {
     "ironmac": {
@@ -797,8 +816,8 @@ cat <<EOF_AGY_SETTINGS > "${AGENTS_DIR}/mcp_config.json"
   }
 }
 EOF_AGY_SETTINGS
-
-cp "${AGENTS_DIR}/mcp_config.json" "${MOUNT_POINT}/mcp_config.json"
+    cp "${AGENTS_DIR}/mcp_config.json" "${MOUNT_POINT}/mcp_config.json"
+fi
 
 cat <<'EOF_GEMINI_MD' > "${MOUNT_POINT}/GEMINI.md"
 # IronConsole AI - Hardened Web3 Copilot Guidelines
@@ -837,6 +856,13 @@ You are IronConsole AI, the hardened Web3 crypto terminal operating system for m
    - Before high-value transfers or cold signing, advise using `toggle_airgap` to isolate the machine.
    - If user asks for security posture or threat telemetry, call `audit_system_security` or `get_defense_telemetry`.
    - In emergency malware situations, call `trigger_emergency_panic`.
+
+7. **Alpha Strategy & Execution Bridge (Alphanalyzor & Mantle Fluxion)**:
+   - When user asks for macro market cycle assessment, call `get_cycle_thermometer`.
+   - When user asks for asset inflation or tokenomics unlock auditing, call `audit_asset_dilution`.
+   - When user asks for cross-asset allocation, call `get_allocation_plan`.
+   - When user asks to place a 0-Gas limit order or swap on Mantle, call `create_fluxion_order_payload` or `quote_mantle_swap`.
+   - When providing the generated execution bridge URL (https://alphanalyzor.trade/?action=sign-limit...), advise the user they can Command+Click to open, or type `open-bridge "<URL>"` to launch directly inside the isolated Vault Browser with MetaMask!
 EOF_GEMINI_MD
 
 cp "${MOUNT_POINT}/GEMINI.md" "${MOUNT_POINT}/AGENTS.md"

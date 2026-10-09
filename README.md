@@ -531,7 +531,7 @@ IronMac pairs CLI-grade security with native macOS desktop ergonomics. You can m
 
 ```text
        ┌────────────────────────────────────────────────────────┐
-       │ [*] IronMac Fortress v0.6.3                            │
+       │ [*] IronMac Fortress v0.6.4                            │
        │ ● Active Defenses: ARMED                               │
        │ ────────────────────────────────────────────────────── │
        │ > Launch IronVault Console                         ⌘C   │

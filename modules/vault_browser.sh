@@ -64,3 +64,8 @@ echo ""
 echo "To launch your isolated Web3 trading browser, run:"
 echo -e "   ${BOLD}ironmac-vault-browser${RESET}"
 echo ""
+
+if [[ $# -gt 0 ]]; then
+    echo -e "${CYAN}Launching isolated Vault Browser with target URL...${RESET}"
+    exec "${LAUNCHER_SCRIPT}" "$@"
+fi

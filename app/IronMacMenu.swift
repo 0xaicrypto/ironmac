@@ -536,7 +536,7 @@ class IronMacMenuDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let clipRunning = cachedClipRunning
 
         // 1. Header
-        let header = NSMenuItem(title: "⚡ IronMac Fortress v0.6.3", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: "⚡ IronMac Fortress v0.6.4", action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
 
