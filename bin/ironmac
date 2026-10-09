@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="0.6.4"
+VERSION="0.6.5"
 # Resolve real source directory even if called through symlinks (e.g. ~/.local/bin/ironmac)
 TARGET="${BASH_SOURCE[0]}"
 while [ -L "$TARGET" ]; do
@@ -85,7 +85,7 @@ interactive_menu() {
         9)
            bash "${SOURCE_DIR}/modules/audit.sh"
            bash "${SOURCE_DIR}/modules/harden.sh"
-           bash "${SOURCE_DIR}/modules/vault_browser.sh"
+           bash "${SOURCE_DIR}/modules/vault_browser.sh" --init-only
            bash "${SOURCE_DIR}/modules/console.sh"
            bash "${SOURCE_DIR}/modules/trap.sh" start
            bash "${SOURCE_DIR}/modules/clip_guard.sh" start
@@ -275,6 +275,7 @@ case "${CMD}" in
         echo ""
         echo "Included Commands:"
         echo "  • ⚡ Defense HUD Telemetry   : integrations/raycast/ironmac-hud.sh"
+        echo "  • 🌐 Launch Vault Browser    : integrations/raycast/ironmac-browser.sh"
         echo "  • 📶 Toggle Hardware Air-Gap : integrations/raycast/ironmac-airgap.sh"
         echo "  • 🔍 Verify Crypto Address   : integrations/raycast/ironmac-verify-address.sh"
         echo "  • ⚡ Launch IronVault Console : integrations/raycast/ironmac-console.sh"
@@ -289,7 +290,7 @@ case "${CMD}" in
     all)
         bash "${SOURCE_DIR}/modules/audit.sh"
         bash "${SOURCE_DIR}/modules/harden.sh"
-        bash "${SOURCE_DIR}/modules/vault_browser.sh"
+        bash "${SOURCE_DIR}/modules/vault_browser.sh" --init-only
         bash "${SOURCE_DIR}/modules/web3_tools.sh"
         ;;
     version|-v|--version)

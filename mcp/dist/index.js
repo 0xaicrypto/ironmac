@@ -14654,8 +14654,58 @@ var TOOLS = [
       },
       required: ["alias", "to", "user_confirmed"]
     }
+  },
+  {
+    name: "open_vault_browser",
+    description: "Launches the isolated, sandboxed IronMac Vault Browser profile (Brave/Chrome) completely segregated from daily browsing. Prevents AMOS and infostealer malware from accessing Web3 wallet sessions. Optionally opens a target URL (e.g. Alphanalyzor trade bridge or DeFi dApp).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: {
+          type: "string",
+          description: "Target URL to open in isolated profile (defaults to 'https://alphanalyzor.trade')"
+        }
+      }
+    }
   }
 ];
+async function handleOpenVaultBrowser(targetUrl = "https://alphanalyzor.trade") {
+  const launcher = path.join(os.homedir(), ".local/bin/ironmac-vault-browser");
+  const fallbackModule = path.join(IRONMAC_ROOT, "modules/vault_browser.sh");
+  if (fs.existsSync(launcher)) {
+    try {
+      execFile(launcher, [targetUrl], (err) => {
+        if (err) console.error("Error launching vault browser:", err);
+      });
+      return {
+        status: "launched",
+        url: targetUrl,
+        method: "ironmac-vault-browser",
+        profile: path.join(os.homedir(), "Library/Application Support/IronMacVault/Profile"),
+        isolated: true
+      };
+    } catch (e) {
+    }
+  }
+  try {
+    const cmd = fs.existsSync(fallbackModule) ? `bash "${fallbackModule}" "${targetUrl}"` : `ironmac vault-browser "${targetUrl}"`;
+    exec(cmd, (err) => {
+      if (err) console.error("Error launching vault browser via fallback:", err);
+    });
+    return {
+      status: "launched",
+      url: targetUrl,
+      method: "module_fallback",
+      profile: path.join(os.homedir(), "Library/Application Support/IronMacVault/Profile"),
+      isolated: true
+    };
+  } catch (e) {
+    return {
+      status: "error",
+      message: e.message
+    };
+  }
+}
 async function runAudit() {
   const checks = {};
   try {
@@ -16469,6 +16519,11 @@ async function main() {
             chain,
             user_confirmed: userConfirmed
           });
+          return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+        }
+        case "open_vault_browser": {
+          const url = String(args?.url ?? "https://alphanalyzor.trade");
+          const result = await handleOpenVaultBrowser(url);
           return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
         }
         default:
